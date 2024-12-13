@@ -1,77 +1,76 @@
 <template>
-    <div style="padding:20px;">
-      <h1>CA OtD チャット</h1>
-      <button @click="goBackToDashboard" style="margin-bottom: 10px;">ダッシュボードに戻る</button>
-  
-      <div style="display: flex; height: 90vh;">
-        <!-- トランザクションリスト -->
-        <div style="width: 700px; border-right: 1px solid #ccc; padding: 10px; overflow-y: auto;">
-          <h2>トランザクションリスト</h2>
-          <table border="1" cellpadding="5" style="border-collapse:collapse; width:100%;">
-            <thead>
-              <tr>
-                <th style="width:150px;">トランザクションID</th>
-                <th style="width:120px;">カラーコード</th>
-                <th style="width:180px;">依頼組織</th>
-                <th style="width:180px;">申請日時</th>
-                <th style="width:100px;">未読件数</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr 
-                v-for="tx in transactions" 
-                :key="tx.id" 
-                @dblclick="startChat(tx)" 
-                class="hover-row"
-              >
-                <td>{{ tx.data["transaction id"] }}</td>
-                <td>{{ tx.data.color_code.join(', ') }}</td>
-                <td>{{ tx.data["Service Centre Name"] }}</td>
-                <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
-                <td>
-                  <span v-if="tx.unreadCount > 0" style="color: red;">{{ tx.unreadCount }}</span>
-                  <span v-else>既読</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-  
-        <!-- チャット表示部分 -->
-        <div style="flex: 1; padding: 10px; display: flex; flex-direction: column;">
-          <h2 v-if="currentTransaction">チャット - {{ currentTransaction.data["transaction id"] }}</h2>
-          <div v-else>トランザクションをダブルクリックしてチャットを開始してください。</div>
-  
-          <!-- チャットログ -->
-          <div v-if="currentTransaction" style="flex: 1; border: 1px solid #ccc; padding: 10px; overflow-y: auto;">
-            <div 
-              v-for="message in chatMessages" 
-              :key="message.id" 
-              :class="{'message-caotd': message.role === 'CA OtD', 'message-ccr': message.role === 'CCR'}"
-              class="message-box"
+  <div style="padding:20px;">
+    <h1>CA OtD チャット</h1>
+    <button @click="goBackToDashboard" style="margin-bottom: 10px;">ダッシュボードに戻る</button>
+
+    <div style="display: flex; height: 90vh;">
+      <!-- トランザクションリスト -->
+      <div style="width: 700px; border-right: 1px solid #ccc; padding: 10px; overflow-y: auto;">
+        <h2>トランザクションリスト</h2>
+        <table border="1" cellpadding="5" style="border-collapse:collapse; width:100%; table-layout: auto;">
+          <thead>
+            <tr style="background-color: #8B4513; color: white;">
+              <th style="flex-grow: 1;">Transaction ID</th>
+              <th style="flex-grow: 2;">Color Code</th>
+              <th style="flex-grow: 1;">依頼組織</th>
+              <th style="flex-grow: 1.5;">申請日時</th>
+              <th style="flex-grow: 0.5;">未読件数</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              v-for="tx in transactions" 
+              :key="tx.id" 
+              @dblclick="startChat(tx)" 
+              class="hover-row"
             >
-              <strong>{{ message.name }}:</strong> {{ message.message }}<br>
-              <small>{{ formatDate(message.timestamp?.toDate()) }}</small>
-            </div>
+              <td>{{ tx.data["transaction id"] }}</td>
+              <td>{{ tx.data.color_code.join(', ') }}</td>
+              <td>{{ tx.data["Service Centre Name"] }}</td>
+              <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
+              <td>
+                <span v-if="tx.unreadCount > 0" style="color: red; font-weight: bold;">未読{{ tx.unreadCount }}件</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- チャット表示部分 -->
+      <div style="flex: 1; padding: 10px; display: flex; flex-direction: column;">
+        <h2 v-if="currentTransaction">チャット - {{ currentTransaction.data["transaction id"] }}</h2>
+        <div v-else>トランザクションをダブルクリックしてチャットを開始してください。</div>
+
+        <!-- チャットログ -->
+        <div v-if="currentTransaction" class="chat-log-container">
+          <div 
+            v-for="message in chatMessages" 
+            :key="message.id" 
+            :class="{'message-caotd': message.role === 'CA OtD', 'message-ccr': message.role === 'CCR'}"
+            class="message-box"
+          >
+            <strong>{{ message.name }}:</strong> {{ message.message }}<br>
+            <small>{{ formatDate(message.timestamp?.toDate()) }}</small>
           </div>
-  
-          <!-- メッセージ入力 -->
-          <div v-if="currentTransaction" style="margin-top: 10px; display: flex; align-items: center;">
-            <textarea 
-              v-model="newMessage" 
-              placeholder="メッセージを入力..." 
-              style="flex: 1; padding: 5px; margin-right: 10px; resize: none; height: 60px;"
-              @keyup.enter="sendMessage" 
-              @keydown.enter.prevent="sendMessageWithCtrl($event)"
-            ></textarea>
-            <button @click="sendMessage" style="padding: 10px 20px;">送信</button>
-          </div>
+        </div>
+
+        <!-- メッセージ入力 -->
+        <div v-if="currentTransaction" style="margin-top: 10px; display: flex; align-items: center;">
+          <textarea 
+            v-model="newMessage" 
+            placeholder="メッセージを入力..." 
+            style="flex: 1; padding: 5px; margin-right: 10px; resize: none; height: 60px;"
+            @keyup.enter="sendMessage" 
+            @keydown.enter.prevent="sendMessageWithCtrl($event)"
+          ></textarea>
+          <button @click="sendMessage" style="padding: 10px 20px;">送信</button>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script setup>
+  </div>
+</template>
+
+<script setup>
 import { ref, onMounted } from 'vue';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, orderBy, Timestamp, updateDoc, getDocs, doc } from 'firebase/firestore';
@@ -179,28 +178,69 @@ function goBackToDashboard() {
 }
 </script>
 
+<style>
+.chat-log-container {
+  flex: 1;
+  border: 1px solid #ccc;
+  padding: 10px;
+  overflow-y: auto;
+  height: 50vh; /* 高さを画面の50%に調整 */
+  background-color: #10631d;
+}
 
-  
-  <style>
-  .hover-row:hover {
-    cursor: pointer;
-    background-color: #f0f0f0;
-  }
-  .message-box {
-    margin: 10px 0;
-    padding: 10px;
-    border-radius: 8px;
-    max-width: 40%; /* チャットバブルの最大幅を調整 */
-    word-wrap: break-word;
-  }
-  .message-caotd {
-    background-color: #e3f2fd;
-    text-align: left;
-  }
-  .message-ccr {
-    background-color: #fce4ec;
-    text-align: right;
-    margin-left: auto;
-  }
-  </style>
-  
+.hover-row {
+  background-color: white;
+}
+
+.hover-row:hover {
+  cursor: pointer;
+  background-color: #E6E6FA; /* 薄い紫色 */
+}
+
+.message-box {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 30%; /* チャットバブルの最大幅を調整 */
+  word-wrap: break-word;
+}
+
+.message-caotd {
+  background-color: #e3f2fd;
+  text-align: left;
+}
+
+.message-ccr {
+  background-color: #fce4ec;
+  text-align: right;
+  margin-left: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  background-color: #8B4513;
+  color: rgb(255, 255, 255);
+  padding: 8px;
+  text-align: left;
+  font-weight: bold;
+}
+
+tbody td {
+  padding: 8px;
+  text-align: left;
+  background-color: white;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #f0f0f0;
+}
+
+</style>

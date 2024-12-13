@@ -7,14 +7,14 @@
       <!-- トランザクションリスト -->
       <div style="width: 700px; border-right: 1px solid #ccc; padding: 10px; overflow-y: auto;">
         <h2>トランザクションリスト</h2>
-        <table border="1" cellpadding="5" style="border-collapse:collapse; width:100%;">
+        <table border="1" cellpadding="5" style="border-collapse:collapse; width:100%; table-layout: auto;">
           <thead>
-            <tr>
-              <th style="width:150px;">トランザクションID</th>
-              <th style="width:120px;">カラーコード</th>
-              <th style="width:180px;">依頼組織</th>
-              <th style="width:180px;">申請日時</th>
-              <th style="width:100px;">未読件数</th>
+            <tr style="background-color: #8B4513; color: white;">
+              <th style="flex-grow: 1;">Transaction ID</th>
+              <th style="flex-grow: 2;">Color Code</th>
+              <th style="flex-grow: 1;">依頼組織</th>
+              <th style="flex-grow: 1.5;">申請日時</th>
+              <th style="flex-grow: 0.5;">未読件数</th>
             </tr>
           </thead>
           <tbody>
@@ -30,7 +30,6 @@
               <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
               <td>
                 <span v-if="tx.unreadCount > 0" style="color: red; font-weight: bold;">未読{{ tx.unreadCount }}件</span>
-                <span v-else></span>
               </td>
             </tr>
           </tbody>
@@ -43,11 +42,11 @@
         <div v-else>トランザクションをダブルクリックしてチャットを開始してください。</div>
 
         <!-- チャットログ -->
-        <div v-if="currentTransaction" style="flex: 1; border: 1px solid #ccc; padding: 10px; overflow-y: auto;">
+        <div v-if="currentTransaction" class="chat-log-container">
           <div 
             v-for="message in chatMessages" 
             :key="message.id" 
-            :class="{'message-ccr': message.role === 'CCR', 'message-caotd': message.role === 'CA OtD'}"
+            :class="{'message-caotd': message.role === 'CA OtD', 'message-ccr': message.role === 'CCR'}"
             class="message-box"
           >
             <strong>{{ message.name }}:</strong> {{ message.message }}<br>
@@ -184,24 +183,67 @@ function goBackToDashboard() {
 </script>
 
 <style>
+.chat-log-container {
+  flex: 1;
+  border: 1px solid #ccc;
+  padding: 10px;
+  overflow-y: auto;
+  height: 50vh; /* 高さを画面の50%に調整 */
+  background-color: #10631d;
+}
+
+.hover-row {
+  background-color: white;
+}
+
 .hover-row:hover {
   cursor: pointer;
-  background-color: #f0f0f0;
+  background-color: #E6E6FA; /* 薄い紫色 */
 }
+
 .message-box {
   margin: 10px 0;
   padding: 10px;
   border-radius: 8px;
-  max-width: 40%; /* チャットバブルの最大幅を調整 */
+  max-width: 30%; /* チャットバブルの最大幅を調整 */
   word-wrap: break-word;
 }
+
 .message-caotd {
-  background-color: #fce4ec;
+  background-color: #add9f8;
   text-align: left;
 }
+
 .message-ccr {
-  background-color: #e3f2fd;
+  background-color: #f8aec7;
   text-align: right;
   margin-left: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  background-color: #8B4513;
+  color: rgb(255, 255, 255);
+  padding: 8px;
+  text-align: left;
+  font-weight: bold;
+}
+
+tbody td {
+  padding: 8px;
+  text-align: left;
+  background-color: white;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #f0f0f0;
 }
 </style>
