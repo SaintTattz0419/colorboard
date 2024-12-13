@@ -1,19 +1,22 @@
 <template>
-  <div style="padding:20px;">
-    <h1>貸出承認</h1>
-    <button @click="goBackToDashboard">ダッシュボードに戻る</button>
-    <div v-if="loading">読み込み中...</div>
-    <div v-else-if="error" style="color:red;">{{ error }}</div>
+  <div class="approval-loan-container">
+    <div class="header">
+      <h1>貸出承認</h1>
+      <button @click="goBackToDashboard" class="back-button">ダッシュボードに戻る</button>
+    </div>
+
+    <div v-if="loading" class="loading">読み込み中...</div>
+    <div v-else-if="error" class="error-message">{{ error }}</div>
     <div v-else>
-      <table border="1" cellpadding="5" style="border-collapse:collapse; width:100%;">
+      <table class="loan-table">
         <thead>
           <tr>
-            <th style="width:100px;">トランザクションID</th>
-            <th style="width:100px;">申請日</th>
-            <th style="width:150px;">カラーコード</th>
+            <th>トランザクションID</th>
+            <th>申請日</th>
+            <th>カラーコード</th>
             <th>依頼者</th>
             <th>依頼組織</th>
-            <th style="width:80px;">承認</th>
+            <th>承認</th>
           </tr>
         </thead>
         <tbody>
@@ -23,85 +26,184 @@
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
-            <td><button @click="approveLoan(tx.id)">承認</button></td>
+            <td>
+              <button @click="approveLoan(tx.id)" class="approve-button">承認</button>
+            </td>
           </tr>
         </tbody>
       </table>
-      <div v-if="loanList.length === 0 && !message">承認待ちの貸出リクエストはありません。</div>
+
+      <div v-if="loanList.length === 0 && !message" class="no-requests">
+        承認待ちの貸出リクエストはありません。
+      </div>
     </div>
-    <div v-if="message" style="color:green;">{{ message }}</div>
+
+    <div v-if="message" class="success-message">{{ message }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { db } from '../firebase'
-import { collection, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue';
+import { db } from '../firebase';
+import { collection, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
-const role = sessionStorage.getItem('role')
+const router = useRouter();
+const role = sessionStorage.getItem('role');
 if (role !== 'CCR') {
-  router.push('/login')
+  router.push('/login');
 }
 
-const loading = ref(true)
-const error = ref('')
-const loanList = ref([])
-const message = ref('')
+const loading = ref(true);
+const error = ref('');
+const loanList = ref([]);
+const message = ref('');
 
-onMounted(fetchData)
+onMounted(fetchData);
 
 async function fetchData() {
-  loading.value = true
-  error.value = ''
-  loanList.value = []
-  message.value = ''
+  loading.value = true;
+  error.value = '';
+  loanList.value = [];
+  message.value = '';
   try {
-    const snap = await getDocs(collection(db, 'colorboards'))
-    const tmp = []
-    snap.forEach(docSnap => {
-      const d = docSnap.data()
-      // デバッグ用ログ
-      console.log('Check data:', d)
-      // Request Date_CA OtDが存在 && Approved Date_CCRがnullのものを抽出
-      if (d["Request Date_CA OtD"] && d["Approved Date_CCR"] === null) {
-        tmp.push({id: docSnap.id, data: d})
+    const snap = await getDocs(collection(db, 'colorboards'));
+    const tmp = [];
+    snap.forEach((docSnap) => {
+      const d = docSnap.data();
+      if (d['Request Date_CA OtD'] && d['Approved Date_CCR'] === null) {
+        tmp.push({ id: docSnap.id, data: d });
       }
-    })
-    loanList.value = tmp
+    });
+    loanList.value = tmp;
   } catch (err) {
-    console.error(err)
-    error.value = 'データ取得中にエラーが発生しました。'
+    console.error('Error:', err);
+    error.value = 'データ取得中にエラーが発生しました。';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function approveLoan(id) {
-  message.value = ''
+  message.value = '';
   try {
-    const docRef = doc(db, 'colorboards', id)
+    const docRef = doc(db, 'colorboards', id);
     await updateDoc(docRef, {
-      "Approved Date_CCR": Timestamp.fromDate(new Date())
-    })
-    message.value = '承認しました。'
-    await fetchData()
+      'Approved Date_CCR': Timestamp.fromDate(new Date()),
+    });
+    message.value = '承認しました。';
+    await fetchData();
   } catch (err) {
-    console.error(err)
-    error.value = '承認中にエラーが発生しました。'
+    console.error('Error:', err);
+    error.value = '承認中にエラーが発生しました。';
   }
 }
 
 function goBackToDashboard() {
-  router.push('/dashboard-ccr')
+  router.push('/dashboard-ccr');
 }
 
 function formatDate(date) {
-  if(!date) return ''
-  const y = date.getFullYear()
-  const m = String(date.getMonth()+1).padStart(2,'0')
-  const d = String(date.getDate()).padStart(2,'0')
-  return `${y}-${m}-${d}`
+  if (!date) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 </script>
+
+<style>
+.approval-loan-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  font-size: 24px;
+  color: #333;
+}
+
+.back-button {
+  background: #1e90ff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.back-button:hover {
+  background: #63a4ff;
+}
+
+.loan-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.loan-table th {
+  background: #4caf50;
+  color: white;
+  padding: 10px;
+  text-align: left;
+}
+
+.loan-table td {
+  padding: 10px;
+  border-bottom: 1px solid #dddddd;
+}
+
+.loan-table tr:hover {
+  background: #f9f9f9;
+}
+
+.approve-button {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.approve-button:hover {
+  background: #45a049;
+}
+
+.loading {
+  text-align: center;
+  font-size: 16px;
+  color: #666;
+}
+
+.error-message {
+  text-align: center;
+  font-size: 16px;
+  color: red;
+}
+
+.no-requests {
+  text-align: center;
+  font-size: 16px;
+  color: #666;
+}
+
+.success-message {
+  text-align: center;
+  font-size: 16px;
+  color: green;
+}
+</style>

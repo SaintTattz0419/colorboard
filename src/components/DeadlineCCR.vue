@@ -19,7 +19,7 @@
             <tr v-for="tx in transactions" :key="tx.id">
               <td>{{ tx["transaction id"] }}</td>
               <td>{{ tx["color_code"]?.join(", ") }}</td>
-              <td>{{ formatDate(tx["Request Date_CCR"]?.toDate()) }}</td>
+              <td>{{ formatDate(tx["Request Date_CA OtD"]?.toDate()) }}</td>
               <td>{{ tx["Customer Name"] }}</td>
               <td>{{ tx["Service Centre Name"] }}</td>
               <td>
@@ -68,7 +68,7 @@
   
   // 日付をフォーマットする関数
   function formatDate(date) {
-    if (!date) return "";
+    if (!date) return "不明"; // デフォルト値を設定
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
@@ -87,10 +87,10 @@
   
   <style>
   .deadline-card {
-    width: 70%; /* カードの幅を画面の70%に設定 */
-    margin: 50px auto; /* 中央寄せ */
+    width: 70%;
+    margin: 50px auto;
     padding: 17px;
-    background-color: #fff; /* 背景を白に */
+    background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -122,15 +122,15 @@
   }
   
   tbody tr:hover {
-    background-color: #f9f9f9; /* ホバー時の背景色 */
+    background-color: #f9f9f9;
   }
   
   .transaction-id-column {
-    width: 15%; /* トランザクションID列の幅を縮小 */
+    width: 15%;
   }
   
   .color-code-column {
-    width: 20%; /* カラーコード列の幅を拡大 */
+    width: 20%;
   }
   </style>
   
