@@ -1,86 +1,67 @@
 <template>
-    <header class="header">
-      <!-- 左側：アプリ名 -->
-      <div class="header-left">
-        <h1 class="header-title" @click="goToDashboard">Color Board Management</h1>
-      </div>
-  
-      <!-- 右側：ログアウトボタン -->
-      <div class="header-right">
-        <button class="logout-button" @click="logout">Log Out</button>
-      </div>
-    </header>
-  </template>
-  
-  <script setup>
-  import { useRouter } from 'vue-router'
-  
-  const router = useRouter()
-  const role = sessionStorage.getItem('role') // ロールを取得
-  
-  function goToDashboard() {
-    // ロールに基づいて遷移
-    if (role === 'CCR') {
-      router.push('/dashboard-ccr')
-    } else if (role === 'CA OtD') {
-      router.push('/')
-    }
+  <header class="app-header">
+    <h1 @click="goToDashboard" class="header-title">Color Board Management</h1>
+    <button @click="logout" class="logout-button">ログアウト</button>
+  </header>
+</template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+const router = useRouter()
+
+function logout() {
+  sessionStorage.clear()
+  router.push('/login')
+}
+
+function goToDashboard() {
+  const role = sessionStorage.getItem('role')
+  if (role === 'CA OtD') {
+    router.push('/') // CA OtDのダッシュボード
+  } else if (role === 'CCR') {
+    router.push('/dashboard-ccr') // CCRのダッシュボード
+  } else {
+    router.push('/login') // ロールが不明な場合はログイン画面へ
   }
-  
-  function logout() {
-    sessionStorage.clear()
-    router.push('/login')
-  }
-  </script>
-  
-  <style scoped>
-  /* ヘッダー全体 */
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(to right, #4CAF50, #2E7D32); /* グラデーション背景 */
-    color: white;
-    padding: 15px 30px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* 左側コンテンツ */
-  .header-left {
-    display: flex;
-    align-items: center;
-  }
-  
-  /* タイトルのスタイル */
-  .header-title {
-    font-size: 1.5rem;
-    cursor: pointer;
-    transition: color 0.3s;
-  }
-  .header-title:hover {
-    color: #c8e6c9; /* ホバー時の色 */
-  }
-  
-  /* 右側コンテンツ */
-  .header-right {
-    display: flex;
-    align-items: center;
-  }
-  
-  /* ログアウトボタン */
-  .logout-button {
-    background: white;
-    color: #4CAF50;
-    border: 1px solid #4CAF50;
-    border-radius: 5px;
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-  .logout-button:hover {
-    background: #81C784;
-    color: white;
-  }
-  </style>
-  
+}
+</script>
+
+<style>
+/* Header用のCSS */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, #b92b27, #1565c0);
+  color: #ffffff;
+  padding: 15px 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-title {
+  cursor: pointer;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+  margin: 0;
+}
+
+.logout-button {
+  background: #065c06;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  cursor: pointer;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+  background: #3e92cc;
+  transform: scale(1.05);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+}
+</style>
