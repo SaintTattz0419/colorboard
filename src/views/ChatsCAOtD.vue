@@ -1,3 +1,4 @@
+<!--ChatsCAOtD.vue-->
 <template>
   <div class="container">
     <div class="header">
@@ -261,13 +262,13 @@ body {
 }
 
 .section-title {
-  font-size: 1.4rem;
-  padding: 10px 0;
+  font-size: 1.1rem;
+  padding: 8px 0;
   font-weight: bold;
   color: #333;
   text-align: left;
   border-bottom: 2px solid #8B4513;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   background: linear-gradient(to right, #8B4513, #a0522d);
   color: #fff;
   padding-left: 15px;
