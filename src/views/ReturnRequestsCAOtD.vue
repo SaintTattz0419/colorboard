@@ -1,47 +1,49 @@
 <template>
-    <div>
-      <h2>返却可能なリスト</h2>
-      <div v-if="loadingReturn">読み込み中...</div>
-      <div v-else-if="errorReturn" style="color:red;">{{ errorReturn }}</div>
-      <div v-else>
-        <table border="1" cellpadding="5" style="border-collapse:collapse; width:100%; table-layout:auto;">
-          <thead>
-            <tr>
-              <th>トランザクションID</th>
-              <th>申請日</th>
-              <th>カラーコード</th>
-              <th>依頼者</th>
-              <th>依頼組織</th>
-              <th>状況</th>
-              <th>選択</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr 
-              v-for="tx in returnTransactions" 
-              :key="tx.id"
-              class="hover-row"
-            >
-              <td>{{ tx.data["transaction id"] }}</td>
-              <td>{{ formatDate(tx.data["Request Date_CA OtD"].toDate()) }}</td>
-              <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
-              <td>{{ tx.data["Customer Name"] }}</td>
-              <td>{{ tx.data["Service Centre Name"] }}</td>
-              <td :style="getStatusCellStyle(tx.data)">{{ getStatusText(tx.data) }}</td>
-              <td><button @click="selectTransaction(tx.id)">選択</button></td>
-            </tr>
-          </tbody>
-        </table>
-  
-        <div v-if="selectedTransactionId" style="margin-top: 20px;">
-          <label>Actual Return Date：</label>
-          <input type="date" v-model="actualReturnDateInput" required />
-          <button @click="submitReturn">返却登録</button>
-        </div>
+  <div class="return-container">
+    <h2 class="title">返却可能なリスト</h2>
+    <div v-if="loadingReturn" class="loading-message">読み込み中...</div>
+    <div v-else-if="errorReturn" class="error-message">{{ errorReturn }}</div>
+    <div v-else>
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th class="transaction-id-column">トランザクションID</th>
+            <th>申請日</th>
+            <th>カラーコード</th>
+            <th>依頼者</th>
+            <th>依頼組織</th>
+            <th>状況</th>
+            <th>返却</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr 
+            v-for="tx in returnTransactions" 
+            :key="tx.id"
+            class="hover-row"
+          >
+            <td>{{ tx.data["transaction id"] }}</td>
+            <td>{{ formatDate(tx.data["Request Date_CA OtD"].toDate()) }}</td>
+            <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
+            <td>{{ tx.data["Customer Name"] }}</td>
+            <td>{{ tx.data["Service Centre Name"] }}</td>
+            <td :style="getStatusCellStyle(tx.data)">{{ getStatusText(tx.data) }}</td>
+            <td class="return-button-cell">
+              <button class="return-button" @click="selectTransaction(tx.id)">選択</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div v-if="selectedTransactionId" class="return-form">
+        <label>Actual Return Date：</label>
+        <input type="date" v-model="actualReturnDateInput" required />
+        <button class="submit-button" @click="submitReturn">返却登録</button>
       </div>
-      <div v-if="messageReturn" style="color:green;">{{ messageReturn }}</div>
     </div>
-  </template>
+    <div v-if="messageReturn" class="success-message">{{ messageReturn }}</div>
+  </div>
+</template>
   
   <script setup>
   import { ref, onMounted } from 'vue';
@@ -137,4 +139,138 @@
     }
   }
   </script>
-  
+
+<style scoped>
+/* 全体のコンテナ */
+.return-container {
+  padding: 20px;
+  font-family: 'Merriweather', serif; /* クラシックなフォント */
+  background: linear-gradient(to bottom, #fdfcf9, #f7f4ed);
+  color: #333;
+  max-width: 65%; /* 全体幅を画面の60%に設定 */
+  margin: 0 auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* タイトルのスタイル */
+.title {
+  font-size: 28px;
+  text-align: center;
+  font-weight: bold;
+  color: #5b3923;
+  margin-bottom: 20px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* テーブルのスタイル */
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.styled-table th {
+  background-color: #5b3923;
+  color: #fff;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+}
+
+.styled-table td {
+  padding: 10px; /* レコード行の高さを調整 */
+  border: 1px solid #ddd;
+  font-size: 16px; /* 文字を少し大きく */
+}
+
+.styled-table tr:nth-child(even) {
+  background-color: #f7f4ed;
+}
+
+.styled-table tr:hover {
+  background-color: #f0e6d2;
+}
+
+/* 列幅の調整 */
+.transaction-id-column {
+  width: 14%; /* トランザクションIDの幅を大胆に狭める */
+}
+
+.styled-table th:nth-child(4), 
+.styled-table th:nth-child(5),
+.styled-table td:nth-child(4), 
+.styled-table td:nth-child(5) {
+  width: 15%; /* 依頼者と依頼組織の列幅を同じに設定 */
+}
+
+.return-button-cell {
+  text-align: center; /* ボタンをセル中央に配置 */
+}
+
+.return-button {
+  background-color: #7c513a;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.return-button:hover {
+  background-color: #5b3923;
+}
+
+/* エラーメッセージのスタイル */
+.error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* 成功メッセージのスタイル */
+.success-message {
+  color: green;
+  font-weight: bold;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* フォームのスタイル */
+.return-form {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.return-form input[type="date"] {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .styled-table th, .styled-table td {
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  .return-form {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .return-button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+</style>

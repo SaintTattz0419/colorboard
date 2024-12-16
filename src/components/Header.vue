@@ -26,7 +26,7 @@ function goToDashboard() {
 }
 </script>
 
-<style>
+<style scoped>
 /* Header用のCSS */
 .app-header {
   display: flex;

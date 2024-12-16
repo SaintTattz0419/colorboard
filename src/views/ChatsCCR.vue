@@ -182,7 +182,7 @@ function goBackToDashboard() {
 }
 </script>
 
-<style>
+<style scoped>
 .chat-log-container {
   flex: 1;
   border: 1px solid #ccc;

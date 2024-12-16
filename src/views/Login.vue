@@ -63,7 +63,7 @@ async function login() {
 }
 </script>
 
-<style>
+<style scoped>
 body {
   background-color: #faf4e1; /* 薄いクリーム色 */
   font-family: Arial, sans-serif;
