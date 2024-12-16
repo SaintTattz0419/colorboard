@@ -1,45 +1,53 @@
 <template>
-  <div style="padding:20px;">
-    <h1>CA OtD チャット</h1>
-    <button @click="goBackToDashboard" style="margin-bottom: 10px;">ダッシュボードに戻る</button>
+  <div class="container">
+    <div class="header">
+      <button @click="goBackToDashboard" class="back-button">ダッシュボードに戻る</button>
+      <h1 class="main-title">CA OtD チャット</h1>
+    </div>
 
-    <div style="display: flex; height: 90vh;">
+    <div class="content-area">
       <!-- トランザクションリスト -->
-      <div style="width: 700px; border-right: 1px solid #ccc; padding: 10px; overflow-y: auto;">
-        <h2>トランザクションリスト</h2>
-        <table border="1" cellpadding="5" style="border-collapse:collapse; width:100%; table-layout: auto;">
-          <thead>
-            <tr style="background-color: #8B4513; color: white;">
-              <th style="flex-grow: 1;">Transaction ID</th>
-              <th style="flex-grow: 2;">Color Code</th>
-              <th style="flex-grow: 1;">依頼組織</th>
-              <th style="flex-grow: 1.5;">申請日時</th>
-              <th style="flex-grow: 0.5;">未読件数</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr 
-              v-for="tx in transactions" 
-              :key="tx.id" 
-              @dblclick="startChat(tx)" 
-              class="hover-row"
-            >
-              <td>{{ tx.data["transaction id"] }}</td>
-              <td>{{ tx.data.color_code.join(', ') }}</td>
-              <td>{{ tx.data["Service Centre Name"] }}</td>
-              <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
-              <td>
-                <span v-if="tx.unreadCount > 0" style="color: red; font-weight: bold;">未読{{ tx.unreadCount }}件</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="transaction-list">
+        <h2 class="section-title">トランザクションリスト</h2>
+        <div class="transaction-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Color Code</th>
+                <th>依頼組織</th>
+                <th>申請日時</th>
+                <th>未読件数</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                v-for="tx in transactions" 
+                :key="tx.id" 
+                @dblclick="startChat(tx)" 
+                class="hover-row"
+              >
+                <td>{{ tx.data["transaction id"] }}</td>
+                <td>{{ tx.data.color_code.join(', ') }}</td>
+                <td>{{ tx.data["Service Centre Name"] }}</td>
+                <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
+                <td>
+                  <span v-if="tx.unreadCount > 0" class="unread-badge">未読{{ tx.unreadCount }}件</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- チャット表示部分 -->
-      <div style="flex: 1; padding: 10px; display: flex; flex-direction: column;">
-        <h2 v-if="currentTransaction">チャット - {{ currentTransaction.data["transaction id"] }}</h2>
-        <div v-else>トランザクションをダブルクリックしてチャットを開始してください。</div>
+      <div class="chat-area">
+        <div v-if="currentTransaction" class="chat-header">
+          <h2 class="section-title chat-title">チャット - {{ currentTransaction.data["transaction id"] }}</h2>
+        </div>
+        <div v-else class="chat-header">
+          <h2 class="section-title chat-title">トランザクションをダブルクリックしてチャットを開始してください。</h2>
+        </div>
 
         <!-- チャットログ -->
         <div v-if="currentTransaction" class="chat-log-container">
@@ -55,15 +63,14 @@
         </div>
 
         <!-- メッセージ入力 -->
-        <div v-if="currentTransaction" style="margin-top: 10px; display: flex; align-items: center;">
+        <div v-if="currentTransaction" class="message-input-area">
           <textarea 
             v-model="newMessage" 
             placeholder="メッセージを入力..." 
-            style="flex: 1; padding: 5px; margin-right: 10px; resize: none; height: 60px;"
             @keyup.enter="sendMessage" 
             @keydown.enter.prevent="sendMessageWithCtrl($event)"
           ></textarea>
-          <button @click="sendMessage" style="padding: 10px 20px;">送信</button>
+          <button @click="sendMessage" class="send-button">送信</button>
         </div>
       </div>
     </div>
@@ -178,52 +185,110 @@ function goBackToDashboard() {
 }
 </script>
 
-<style>
-.chat-log-container {
+<style scoped>
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: #fdfdfd;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  border: 1px solid #ccc;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+/* ヘッダ部分 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 中央寄せ */
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  left: 10px;
+  top: 70%;
+  transform: translateY(-50%);
+  background: linear-gradient(to right, #6b8e23, #556b2f);
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: bold;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background: linear-gradient(to right, #7f9a3a, #667b30);
+}
+
+.main-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  text-shadow: 1px 1px 2px #aaa;
+  margin: 0;
+}
+
+/* コンテンツエリアを全高活用 */
+.content-area {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+  overflow: hidden;
+}
+
+/* トランザクションリスト */
+.transaction-list {
+  width: 40%;
+  border-right: 1px solid #ccc;
   padding: 10px;
   overflow-y: auto;
-  height: 50vh; /* 高さを画面の50%に調整 */
-  background-color: #10631d;
 }
 
-.hover-row {
-  background-color: white;
-}
-
-.hover-row:hover {
-  cursor: pointer;
-  background-color: #E6E6FA; /* 薄い紫色 */
-}
-
-.message-box {
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 8px;
-  max-width: 30%; /* チャットバブルの最大幅を調整 */
-  word-wrap: break-word;
-}
-
-.message-caotd {
-  background-color: #e3f2fd;
+.section-title {
+  font-size: 1.4rem;
+  padding: 10px 0;
+  font-weight: bold;
+  color: #333;
   text-align: left;
+  border-bottom: 2px solid #8B4513;
+  margin-bottom: 10px;
+  background: linear-gradient(to right, #8B4513, #a0522d);
+  color: #fff;
+  padding-left: 15px;
+  border-radius: 4px;
 }
 
-.message-ccr {
-  background-color: #fce4ec;
-  text-align: right;
-  margin-left: auto;
+.transaction-table-wrapper {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  background-color: #fff;
 }
 
 thead th {
   background-color: #8B4513;
-  color: rgb(255, 255, 255);
+  color: #fff;
   padding: 8px;
   text-align: left;
   font-weight: bold;
@@ -232,15 +297,115 @@ thead th {
 tbody td {
   padding: 8px;
   text-align: left;
-  background-color: white;
+  background-color: #fff;
 }
 
-button {
+.hover-row {
+  background-color: #ffffff;
+  transition: background-color 0.2s;
+}
+
+.hover-row:hover {
+  cursor: pointer;
+  background-color: #f0f0f5;
+}
+
+.unread-badge {
+  color: red;
+  font-weight: bold;
+}
+
+/* チャットエリア */
+.chat-area {
+  flex: 1; 
+  display: flex; 
+  flex-direction: column;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.chat-header {
+  margin-bottom: 10px;
+}
+
+.chat-title {
+  font-size: 1.2rem;
+  text-shadow: 1px 1px 2px #ccc;
+  background: linear-gradient(to right, #2e8b57, #3cb371);
+  color: #fff;
+  padding: 7px;
+  border-radius: 4px;
+  margin: 0;
+}
+
+/* チャットログコンテナをフレキシブルに */
+.chat-log-container {
+  flex: 0.91;
+  border: 1px solid #ccc;
+  padding: 10px;
+  overflow-y: auto;
+  background: #eef5ee;
+  border-radius: 5px;
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.05);
+}
+
+/* メッセージスタイル */
+.message-box {
+  margin: 1px 0;
+  padding: 6px;
+  border-radius: 8px;
+  max-width: 47%;
+  word-wrap: break-word;
+  line-height: 1.3;
+  font-size: 0.95rem;
+}
+
+.message-caotd {
+  background-color: #e3f2fd;
+  text-align: left;
+  border: 1px solid #90caf9;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.message-ccr {
+  background-color: #fce4ec;
+  text-align: right;
+  margin-left: auto;
+  border: 1px solid #f8bbd0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* メッセージ入力部分 */
+.message-input-area {
+  margin-top: 10px; 
+  display: flex; 
+  align-items: center; 
+  gap:10px;
+}
+
+.message-input-area textarea {
+  flex: 1; 
+  padding: 10px; 
+  resize: none; 
+  height: 65px; 
+  border: 1px solid #ccc; 
+  border-radius: 4px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.send-button {
+  padding: 15px 30px;
+  background: linear-gradient(to right, #00695c, #00897b);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
   cursor: pointer;
 }
 
-button:hover {
-  background-color: #f0f0f0;
+.send-button:hover {
+  background: linear-gradient(to right, #00796b, #009688);
 }
-
 </style>

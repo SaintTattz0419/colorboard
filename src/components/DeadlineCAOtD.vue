@@ -85,7 +85,7 @@
   }
   </script>
   
-  <style>
+  <style scoped>
   .deadline-card {
     width: 70%; /* カードの幅を画面の70%に設定 */
     margin: 50px auto; /* 中央寄せ */

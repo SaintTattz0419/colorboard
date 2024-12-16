@@ -107,7 +107,7 @@ function formatDate(date) {
 }
 </script>
 
-<style>
+<style scoped>
 .hover-row:hover {
   cursor: pointer;
 }

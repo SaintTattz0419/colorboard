@@ -112,7 +112,7 @@ function formatDate(date) {
 }
 </script>
 
-<style>
+<style scoped>
 .approval-loan-container {
   max-width: 900px;
   margin: 0 auto;

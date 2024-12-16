@@ -85,7 +85,7 @@
   }
   </script>
   
-  <style>
+  <style scoped>
   .deadline-card {
     width: 70%;
     margin: 50px auto;
