@@ -14,6 +14,8 @@
             <th class="transaction-id-column">トランザクションID</th>
             <th>申請日</th>
             <th>カラーコード</th>
+            <th>色板タイプ</th>
+            <th>設定色</th>
             <th>依頼者</th>
             <th>依頼組織</th>
             <th>返却予定日</th>
@@ -30,6 +32,8 @@
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
+            <td>{{ tx.data["type_of_plate"] || "" }}</td>
+            <td>{{ tx.data["decided_color"] ? tx.data["decided_color"].join(", ") : "" }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
             <td>{{ formatDate(tx.data["Return Date"]?.toDate()) }}</td>
@@ -119,7 +123,7 @@ function goBackToDashboard() {
   font-family: 'Arial', sans-serif;
   background: #f4f4f9;
   color: #333;
-  max-width: 70%;
+  max-width: 80%;
   margin: 0 auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   border-radius: 10px;
