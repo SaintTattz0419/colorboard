@@ -11,11 +11,13 @@
       <table class="loan-table">
         <thead>
           <tr>
-            <th>トランザクションID</th>
+            <th class="transaction-id-column">トランザクションID</th>
             <th>申請日</th>
+            <th>色板タイプ</th>
             <th>カラーコード</th>
-            <th>依頼者</th>
-            <th>依頼組織</th>
+            <th>CC担当者名</th>
+            <th>貸出先CC</th>
+            <th>顧客会社名</th>
             <th>承認</th>
           </tr>
         </thead>
@@ -23,9 +25,11 @@
           <tr v-for="tx in loanList" :key="tx.id">
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
+            <td>{{ tx.data["plate_type"] || '' }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
+            <td>{{ tx.data["end_user_company"] }}</td>
             <td>
               <button @click="approveLoan(tx.id)" class="approve-button">承認</button>
             </td>
@@ -114,7 +118,7 @@ function formatDate(date) {
 
 <style scoped>
 .approval-loan-container {
-  max-width: 900px;
+  width: 75%; /* Changed from max-width to width and set to 75% */
   margin: 0 auto;
   padding: 20px;
   background: #ffffff;
@@ -132,6 +136,10 @@ function formatDate(date) {
 .header h1 {
   font-size: 24px;
   color: #333;
+}
+
+.transaction-id-column {
+  width: 12%;
 }
 
 .back-button {

@@ -16,8 +16,9 @@
             <th>カラーコード</th>
             <th>色板タイプ</th>
             <th>設定色</th>
-            <th>依頼者</th>
-            <th>依頼組織</th>
+            <th>CC担当者名</th>
+            <th>貸出先CC</th>
+            <th>顧客会社名</th>
             <th>返却予定日</th>
             <th>返却日</th>
             <th>状況</th>
@@ -32,10 +33,11 @@
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
-            <td>{{ tx.data["type_of_plate"] || "" }}</td>
-            <td>{{ tx.data["decided_color"] ? tx.data["decided_color"].join(", ") : "" }}</td>
+            <td>{{ tx.data["plate_type"] || "" }}</td>
+            <td>{{ tx.data["chosen_color"] ? tx.data["chosen_color"].join(", ") : "" }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
+            <td>{{ tx.data["end_user_company"] }}</td>
             <td>{{ formatDate(tx.data["Return Date"]?.toDate()) }}</td>
             <td>{{ formatDate(tx.data["Actual Return Date"]?.toDate()) }}</td>
             <td :style="getStatusCellStyle(tx.data)">{{ getStatusText(tx.data) }}</td>
