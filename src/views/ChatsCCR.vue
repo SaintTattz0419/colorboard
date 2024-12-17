@@ -16,7 +16,8 @@
               <tr>
                 <th>Transaction ID</th>
                 <th>Color Code</th>
-                <th>依頼組織</th>
+                <th>貸出先CC</th>
+                <th>顧客会社名</th>
                 <th>申請日時</th>
                 <th>未読件数</th>
               </tr>
@@ -31,6 +32,7 @@
                 <td>{{ tx.data["transaction id"] }}</td>
                 <td>{{ tx.data.color_code.join(', ') }}</td>
                 <td>{{ tx.data["Service Centre Name"] }}</td>
+                <td>{{ tx.data["end_user_company"] }}</td>
                 <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
                 <td>
                   <span v-if="tx.unreadCount > 0" class="unread-badge">未読{{ tx.unreadCount }}件</span>

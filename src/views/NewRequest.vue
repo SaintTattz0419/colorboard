@@ -35,14 +35,20 @@
 
         <!-- サービスセンター名 -->
         <div class="form-group">
-          <label>Service Centre Name：</label>
+          <label>貸出先CC：</label>
           <input v-model="serviceCentreName" type="text" required />
         </div>
 
         <!-- 依頼者名 -->
         <div class="form-group">
-          <label>Customer Name：</label>
+          <label>CC担当者名：</label>
           <input v-model="customerName" type="text" required />
+        </div>
+
+        <!-- 顧客名 -->
+        <div class="form-group">
+          <label>顧客会社名：</label>
+          <input v-model="end_user_company" type="text" />
         </div>
 
         <!-- 返却日 -->
@@ -86,6 +92,8 @@ const colorCodes = ref([]) // カラーコードのリスト
 const newColorCode = ref('') // 新しく入力するカラーコード用
 const serviceCentreName = ref('') // サービスセンター名
 const customerName = ref('') // 依頼者名
+const end_user = ref('') // 依頼先
+const end_user_company = ref('') // 顧客名
 const returnDateInput = ref('') // 返却日
 const note = ref('') // メモ
 const type_of_plate = ref('基準板') // 色板タイプ（初期値は"基準板"）
@@ -166,7 +174,8 @@ async function sendRequest() {
       "Actual Return Date": null,
       "Return Check_CCR": null,
       "note": note.value || null,
-      "plate_type": type_of_plate.value // 新しく追加したデータ
+      "plate_type": type_of_plate.value,
+      "end_user_company": end_user_company.value || null // 新規項目
     })
 
     message.value = '申請が送信されました。'
@@ -184,6 +193,7 @@ function resetForm() {
   returnDateInput.value = ''
   note.value = ''
   type_of_plate.value = '基準板' // リセット時に初期値へ戻す
+  end_user_company.value = ''
 }
 
 function goBackToDashboard() {
