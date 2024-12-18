@@ -9,11 +9,12 @@
           <tr>
             <th class="transaction-id-column">トランザクションID</th>
             <th class="color-code-column">カラーコード</th>
-            <th class="plate-type-column">プレートタイプ</th>
+            <th class="material-type-column">素材タイプ</th>
+            <th class="plate-type-column">色板タイプ</th>
             <th>申請日</th>
             <th>CC担当者</th>
             <th>貸出先CC</th>
-            <th>顧客会社名</th>
+            <th class="end-user-company-column">顧客会社名</th>
             <th>返却期限</th>
           </tr>
         </thead>
@@ -21,7 +22,8 @@
           <tr v-for="tx in transactions" :key="tx.id">
             <td>{{ tx["transaction id"] }}</td>
             <td>{{ tx["color_code"]?.join(", ") }}</td>
-            <td>{{ tx["plate_type"] || '未設定' }}</td>
+            <td>{{ tx["material_type"] }}</td>
+            <td>{{ tx["plate_type"] || '' }}</td>
             <td>{{ formatDate(tx["Request Date_CA OtD"]?.toDate()) }}</td>
             <td>{{ tx["Customer Name"] }}</td>
             <td>{{ tx["Service Centre Name"] }}</td>
@@ -91,7 +93,7 @@ function daysLeft(returnDate) {
 
 <style scoped>
 .deadline-card {
-  width: 70%;
+  width: 75%;
   margin: 1.5% auto;
   padding: 17px;
   background-color: #fff;
@@ -138,6 +140,15 @@ tbody tr:hover {
 }
 
 .plate-type-column {
-  width: 15%;
+  width: 9%;
 }
+
+.material-type-column{
+  width: 8%;
+}
+
+.end-user-company-column{
+  width: 14%;
+}
+
 </style>

@@ -10,6 +10,7 @@
             <th class="transaction-id-column">トランザクションID</th>
             <th>申請日</th>
             <th>カラーコード</th>
+            <th>素材タイプ</th>
             <th>色板タイプ</th>
             <th>CC担当者名</th>
             <th>貸出先CC</th>
@@ -28,6 +29,7 @@
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
+            <td>{{ tx.data["material_type"] }}</td>
             <td>{{ tx.data["plate_type"] || "" }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
@@ -278,9 +280,9 @@ async function submitReturn() {
 <style scoped>
 .return-container {
   padding: 20px;
-  font-family: 'Merriweather', serif;
+  font-family: 'Arial', serif; /*Merriweather*/
   background: linear-gradient(to bottom, #fdfcf9, #f7f4ed);
-  color: #333;
+  color: #000000;
   max-width: 80%; /* 幅を拡大 */
   margin: 0 auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);

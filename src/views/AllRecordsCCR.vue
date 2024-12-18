@@ -42,7 +42,7 @@
       <div v-if="loadingAll" class="loading-message">読み込み中...</div>
       <div v-else-if="errorAll" class="error-message">{{ errorAll }}</div>
       <div v-else>
-        <!-- ダウンロード画像アイコンをNote列上付近に配置 -->
+        <!-- ダウンロードアイコン -->
         <div class="download-container">
           <img 
             src="../assets/download.png" 
@@ -57,6 +57,7 @@
               <th style="width:8%;">トランザクションID</th>
               <th style="width:8%;">申請日</th>
               <th style="width:14%;">カラーコード</th>
+              <th style="width:10%;">素材タイプ</th>
               <th style="width:8%;">色板タイプ</th>
               <th style="width:12%;">設定色</th>
               <th style="width:12%;">貸出先CC</th>
@@ -77,6 +78,7 @@
               <td>{{ tx.data["transaction id"] }}</td>
               <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
               <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
+              <td>{{ tx.data["material_type"] || "" }}</td>
               <td>{{ tx.data["plate_type"] || "" }}</td>
               <td>{{ tx.data["chosen_color"] ? tx.data["chosen_color"].join(", ") : "" }}</td>
               <td>{{ tx.data["Service Centre Name"] }}</td>
@@ -104,6 +106,11 @@
             <div class="form-group">
               <label>カラーコード (カンマ区切り):</label>
               <textarea v-model="editData['color_code_input']" placeholder="複数カラーコードをカンマ(,)で区切って入力"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>素材タイプ：</label>
+              <input v-model="editData['material_type']" type="text" placeholder="素材タイプを入力">
             </div>
 
             <div class="form-group">
@@ -238,7 +245,7 @@ const filteredTransactions = computed(() => {
   return allTransactions.value.filter(tx => {
     const d = tx.data;
 
-    // ステータスフィルター
+    // ステータスフィルタ
     if (statusFilter.value) {
       const st = getStatusText(d);
       if (st !== statusFilter.value) return false;
@@ -319,6 +326,7 @@ async function updateRecord() {
       "color_code": updatedColorCodes,
       "chosen_color": updatedChosenColors.length > 0 ? updatedChosenColors : null,
       "plate_type": updatedPlateType || null,
+      "material_type": editData.value["material_type"] || null, // 素材タイプを更新
       "Customer Name": editData.value["Customer Name"],
       "Service Centre Name": editData.value["Service Centre Name"],
       "Status": editData.value["Status"],
@@ -360,6 +368,7 @@ function downloadCSV() {
       "返却実績日": formatDate(d["Actual Return Date"]?.toDate()),
       "CA申請者": d["CA OtD Name"] || "",
       "カラーコード": (d["color_code"] || []).join(", "),
+      "素材タイプ": d["material_type"] || "", // 素材タイプを追加
       "色板タイプ": d["plate_type"] || "",
       "設定色": (d["chosen_color"] || []).join(", "),
       "依頼組織": d["Service Centre Name"] || "",
@@ -377,6 +386,7 @@ function downloadCSV() {
     "返却実績日": "",
     "CA申請者": "",
     "カラーコード": "",
+    "素材タイプ": "",
     "色板タイプ": "",
     "設定色": "",
     "依頼組織": "",
@@ -415,11 +425,8 @@ function downloadCSV() {
 </script>
 
 <style scoped>
-/* 前回と同様のスタイルで、差分としてdownload-iconを追加 */
-
-/* download-iconのスタイルを追加 */
 .download-icon {
-  width: 28px; /* 画像サイズを調整 */
+  width: 28px;
   height: 28px;
   cursor: pointer;
   margin-right: 10px;
@@ -431,7 +438,7 @@ function downloadCSV() {
   transform: scale(1.1);
 }
 
-/* それ以外のスタイルは変更なし */
+/* そのほかのスタイルは変更なし */
 .container {
   position: relative;
   min-height: 100vh;

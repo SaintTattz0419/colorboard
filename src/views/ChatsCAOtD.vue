@@ -32,8 +32,8 @@
                 <td>{{ tx.data["transaction id"] }}</td>
                 <td>{{ tx.data.color_code.join(', ') }}</td>
                 <td>{{ tx.data["Service Centre Name"] }}</td>
-                <td>{{ tx.data["end_user_company"] }}</td>
                 <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
+                <td>{{ tx.data["end_user_company"] }}</td>
                 <td>
                   <span v-if="tx.unreadCount > 0" class="unread-badge">未読{{ tx.unreadCount }}件</span>
                 </td>

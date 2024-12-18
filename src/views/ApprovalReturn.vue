@@ -14,13 +14,14 @@
             <tr>
               <th class="transaction_id">トランザクションID</th>
               <th>申請日</th>
-              <th>返却日</th>
-              <th>カラーコード</th>
-              <th>設定色</th>
-              <th>色板タイプ</th>
+              <th class="actual-return-date-column">返却実績日</th>
+              <th class="color-code-column">カラーコード</th>
+              <th class="material-type-column">素材タイプ</th>
+              <th class="chosen-color-column">設定色</th>
+              <th class="plate-type-column">色板タイプ</th>
               <th>CC担当者名</th>
               <th>貸出先CC</th>
-              <th>顧客会社名</th>
+              <th class="end-user-company-column">顧客会社名</th>
               <th>承認</th>
             </tr>
           </thead>
@@ -30,6 +31,7 @@
               <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
               <td>{{ formatDate(tx.data["Actual Return Date"]?.toDate()) }}</td>
               <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
+              <td>{{ tx.data["material_type"] }}</td>
               <td>{{ tx.data["chosen_color"] ? tx.data["chosen_color"].join(", ") : "" }}</td>
               <td>{{ tx.data["plate_type"] || "" }}</td>
               <td>{{ tx.data["Customer Name"] }}</td>
@@ -162,7 +164,27 @@ body {
 }
 
 .transaction_id{
-  width: 12%;
+  width: 11.5%;
+}
+
+.actual-return-date-column{
+  width: 7%;
+}
+
+.material-type-column{
+  width: 7%;
+}
+
+.chosen-color-column{
+  width: 10%;
+}
+
+.plate-type-column{
+  width: 7%;
+}
+
+.end-user-company-column{
+  width: 13%;
 }
 
 .back-button {
