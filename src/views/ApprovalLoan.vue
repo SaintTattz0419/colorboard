@@ -2,7 +2,7 @@
   <div class="approval-loan-container">
     <div class="header">
       <h1>貸出承認</h1>
-      <button @click="goBackToDashboard" class="back-button">ダッシュボードに戻る</button>
+      <button @click="goBackToDashboard" class="back-button">ダッシュボードへ戻る</button>
     </div>
 
     <div v-if="loading" class="loading">読み込み中...</div>
@@ -13,11 +13,12 @@
           <tr>
             <th class="transaction-id-column">トランザクションID</th>
             <th>申請日</th>
+            <th class="color-code-column">カラーコード</th>
+            <th class="material-type-column">素材タイプ</th>
             <th>色板タイプ</th>
-            <th>カラーコード</th>
             <th>CC担当者名</th>
             <th>貸出先CC</th>
-            <th>顧客会社名</th>
+            <th class="end-user-company-column">顧客会社名</th>
             <th>承認</th>
           </tr>
         </thead>
@@ -25,13 +26,14 @@
           <tr v-for="tx in loanList" :key="tx.id">
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
-            <td>{{ tx.data["plate_type"] || '' }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
+            <td>{{ tx.data["material_type"] }}</td>
+            <td>{{ tx.data["plate_type"] || '' }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
             <td>{{ tx.data["end_user_company"] }}</td>
             <td>
-              <button @click="approveLoan(tx.id)" class="approve-button">承認</button>
+              <button @click="tryApproveLoan(tx)" class="approve-button">承認</button>
             </td>
           </tr>
         </tbody>
@@ -43,6 +45,17 @@
     </div>
 
     <div v-if="message" class="success-message">{{ message }}</div>
+
+    <!-- エラーモーダル -->
+    <div v-if="showErrorModal" class="modal-overlay" @click="closeErrorModal">
+      <div class="modal-content" @click.stop>
+        <h2>エラー</h2>
+        <p>カラーコードの追加が必要です。</p>
+        <div class="button-group">
+          <button @click="closeErrorModal" class="cancel-button">OK</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -63,6 +76,8 @@ const error = ref('');
 const loanList = ref([]);
 const message = ref('');
 
+const showErrorModal = ref(false);
+
 onMounted(fetchData);
 
 async function fetchData() {
@@ -75,6 +90,7 @@ async function fetchData() {
     const tmp = [];
     snap.forEach((docSnap) => {
       const d = docSnap.data();
+      // "Approved Date_CCR"がnullの場合が承認待ちと判断
       if (d['Request Date_CA OtD'] && d['Approved Date_CCR'] === null) {
         tmp.push({ id: docSnap.id, data: d });
       }
@@ -86,6 +102,17 @@ async function fetchData() {
   } finally {
     loading.value = false;
   }
+}
+
+function tryApproveLoan(tx) {
+  // color_codeがnullまたは空配列の場合エラー
+  if (!tx.data["color_code"] || tx.data["color_code"].length === 0) {
+    // カラーコードが必要なエラーをモーダルで表示
+    showErrorModal.value = true;
+    return;
+  }
+  // カラーコードがある場合のみ承認処理実行
+  approveLoan(tx.id);
 }
 
 async function approveLoan(id) {
@@ -103,6 +130,10 @@ async function approveLoan(id) {
   }
 }
 
+function closeErrorModal() {
+  showErrorModal.value = false;
+}
+
 function goBackToDashboard() {
   router.push('/dashboard-ccr');
 }
@@ -118,7 +149,7 @@ function formatDate(date) {
 
 <style scoped>
 .approval-loan-container {
-  width: 75%; /* Changed from max-width to width and set to 75% */
+  width: 75%;
   margin: 0 auto;
   padding: 20px;
   background: #ffffff;
@@ -139,7 +170,19 @@ function formatDate(date) {
 }
 
 .transaction-id-column {
-  width: 12%;
+  width: 11.5%;
+}
+
+.material-type-column{
+  width: 8%;
+}
+
+.color-code-column{
+  width: 15%;
+}
+
+.end-user-company-column{
+  width: 15%;
 }
 
 .back-button {
@@ -213,5 +256,64 @@ function formatDate(date) {
   text-align: center;
   font-size: 16px;
   color: green;
+}
+
+/* モーダルスタイル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  max-width: 90%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  position: relative;
+  text-align: center;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.modal-content p {
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #333;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cancel-button {
+  background-color: #b71c1c;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cancel-button:hover {
+  background-color: #7f0000;
 }
 </style>

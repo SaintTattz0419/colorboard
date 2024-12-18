@@ -12,13 +12,14 @@
         <thead>
           <tr>
             <th class="transaction-id-column">トランザクションID</th>
-            <th>申請日</th>
-            <th>カラーコード</th>
-            <th>色板タイプ</th>
-            <th>設定色</th>
+            <th class="requested-date-column">申請日</th>
+            <th class="color-code-column">カラーコード</th>
+            <th class="material-type-column">素材タイプ</th>
+            <th class="plate-type-column">色板タイプ</th>
+            <th class="chosen-color-column">設定色</th>
             <th>CC担当者名</th>
             <th>貸出先CC</th>
-            <th>顧客会社名</th>
+            <th class="end-user-company-column">顧客会社名</th>
             <th>返却予定日</th>
             <th>返却日</th>
             <th>状況</th>
@@ -33,6 +34,7 @@
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
+            <td>{{ tx.data["material_type"] }}</td>
             <td>{{ tx.data["plate_type"] || "" }}</td>
             <td>{{ tx.data["chosen_color"] ? tx.data["chosen_color"].join(", ") : "" }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
@@ -125,7 +127,7 @@ function goBackToDashboard() {
   font-family: 'Arial', sans-serif;
   background: #f4f4f9;
   color: #333;
-  max-width: 80%;
+  max-width: 85%;
   margin: 0 auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   border-radius: 10px;
@@ -148,7 +150,7 @@ function goBackToDashboard() {
 }
 
 .dashboard-button {
-  background-color: #003366;
+  background-color: #262727; /*#003366*/
   color: #ffffff;
   padding: 6px 11px;
   font-size: 14px;
@@ -174,8 +176,8 @@ function goBackToDashboard() {
 }
 
 .styled-table th {
-  background-color: #339715;
-  color: #ffffff;
+  background-color: #e4d502;/*#339715;*/
+  color: #424141;
   padding: 12px;
   font-size: 14px;
   border: 1px solid #ddd;
@@ -200,7 +202,31 @@ function goBackToDashboard() {
 
 /* トランザクションID列の幅を縮小 */
 .transaction-id-column {
-  width: 12%;
+  width: 10%;
+}
+
+.plate-type-column{
+  width: 6%;
+}
+
+.material-type-column{
+  width: 6%;
+}
+
+.end-user-company-column{
+  width: 14%;
+}
+
+.requested-date-column{
+  width: 6.5%;
+}
+
+.chosen-color-column{
+  width: 10%;
+}
+
+.color-code-column{
+  width: 13%;
 }
 
 /* レスポンシブ対応 */
@@ -211,7 +237,8 @@ function goBackToDashboard() {
   }
 
   .transaction-id-column {
-    width: 15%;
+    width: 11%;
   }
+
 }
 </style>

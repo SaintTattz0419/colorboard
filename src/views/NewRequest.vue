@@ -2,16 +2,15 @@
   <div class="wrapper">
     <div class="container">
       <h1 class="title">新規申請</h1>
-      <form @submit.prevent="sendRequest">
-        <!-- カラーコード入力 -->
+      <form @submit.prevent="showConfirmation = true">
         <div class="form-group">
           <label>Color Codes：</label>
           <div class="color-input">
-            <input 
-              v-model="newColorCode" 
-              type="text" 
-              placeholder="カラーコードを入力 (大文字英字・数字のみ)" 
-              @input="validateColorCode" 
+            <input
+              v-model="newColorCode"
+              type="text"
+              placeholder="カラーコードを入力 (大文字英字・数字のみ)"
+              @input="validateColorCode"
             />
             <button type="button" @click="addColorCode">追加</button>
           </div>
@@ -23,7 +22,6 @@
           </ul>
         </div>
 
-        <!-- 色板タイプ選択 -->
         <div class="form-group">
           <label>色板タイプ：</label>
           <select v-model="type_of_plate">
@@ -33,31 +31,34 @@
           </select>
         </div>
 
-        <!-- サービスセンター名 -->
+        <div class="form-group">
+          <label>素材タイプ：</label>
+          <select v-model="material_type">
+            <option value="Solid">ソリッド</option>
+            <option value="Metallic">メタリック</option>
+          </select>
+        </div>
+
         <div class="form-group">
           <label>貸出先CC：</label>
           <input v-model="serviceCentreName" type="text" required />
         </div>
 
-        <!-- 依頼者名 -->
         <div class="form-group">
           <label>CC担当者名：</label>
           <input v-model="customerName" type="text" required />
         </div>
 
-        <!-- 顧客名 -->
         <div class="form-group">
           <label>顧客会社名：</label>
           <input v-model="end_user_company" type="text" />
         </div>
 
-        <!-- 返却日 -->
         <div class="form-group">
           <label>Return Date：</label>
           <input v-model="returnDateInput" :max="maxReturnDate" type="date" required />
         </div>
 
-        <!-- メモ入力 -->
         <div class="form-group">
           <label>Note：</label>
           <textarea v-model="note" placeholder="メモを入力"></textarea>
@@ -68,11 +69,30 @@
           <button type="button" class="dashboard-button" @click="goBackToDashboard">ダッシュボードに戻る</button>
         </div>
 
-        <!-- エラーメッセージ表示 -->
         <div v-if="formError" class="error-message">{{ formError }}</div>
       </form>
 
-      <!-- メッセージ表示 -->
+      <div v-if="showConfirmation" class="modal-overlay" @click="closeModal">
+        <div class="modal-content" @click.stop>
+          <h2>新規申請の確認</h2>
+          <p>以下の内容で新規申請しますか？</p>
+          <ul class="confirm-list">
+            <li><strong>Color Codes:</strong> {{ colorCodes.join(", ") }}</li>
+            <li><strong>色板タイプ:</strong> {{ type_of_plate }}</li>
+            <li><strong>素材タイプ:</strong> {{ material_type === "Metallic" ? "メタリック" : "ソリッド" }}</li>
+            <li><strong>貸出先CC:</strong> {{ serviceCentreName }}</li>
+            <li><strong>CC担当者名:</strong> {{ customerName }}</li>
+            <li><strong>顧客会社名:</strong> {{ end_user_company }}</li>
+            <li><strong>返却予定日:</strong> {{ returnDateInput }}</li>
+            <li><strong>Note:</strong> {{ note }}</li>
+          </ul>
+          <div class="button-group">
+            <button @click="confirmSend">OK</button>
+            <button @click="closeModal">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <div v-if="message" class="success-message">{{ message }}</div>
       <div v-if="error" class="error-message">{{ error }}</div>
     </div>
@@ -88,24 +108,26 @@ import { useRouter } from 'vue-router'
 const name = sessionStorage.getItem('name')
 const role = sessionStorage.getItem('role')
 
-const colorCodes = ref([]) // カラーコードのリスト
-const newColorCode = ref('') // 新しく入力するカラーコード用
-const serviceCentreName = ref('') // サービスセンター名
-const customerName = ref('') // 依頼者名
-const end_user = ref('') // 依頼先
-const end_user_company = ref('') // 顧客名
-const returnDateInput = ref('') // 返却日
-const note = ref('') // メモ
-const type_of_plate = ref('基準板') // 色板タイプ（初期値は"基準板"）
+const colorCodes = ref([])
+const newColorCode = ref('')
+const serviceCentreName = ref('')
+const customerName = ref('')
+const end_user_company = ref('')
+const returnDateInput = ref('')
+const note = ref('')
+const type_of_plate = ref('基準板')
+const material_type = ref('Solid') // 素材タイプの追加、初期値はソリッド
 
 const today = new Date()
 const maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 90)
-const maxReturnDate = maxDate.toISOString().split('T')[0] // 最大返却日（90日以内）
+const maxReturnDate = maxDate.toISOString().split('T')[0]
 
-const message = ref('') // 成功メッセージ
-const error = ref('') // エラーメッセージ
-const formError = ref('') // バリデーションエラーメッセージ
+const message = ref('')
+const error = ref('')
+const formError = ref('')
 const router = useRouter()
+
+const showConfirmation = ref(false)
 
 function generateTransactionId(yearYY) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -117,7 +139,6 @@ function generateTransactionId(yearYY) {
 }
 
 function validateColorCode() {
-  // 入力された文字を強制的に大文字にし、英字と数字以外を除去
   newColorCode.value = newColorCode.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
 }
 
@@ -132,26 +153,24 @@ function removeColorCode(index) {
   colorCodes.value.splice(index, 1)
 }
 
-async function sendRequest() {
-  message.value = ''
-  error.value = ''
-  formError.value = '' // エラーメッセージをリセット
+function closeModal() {
+  showConfirmation.value = false
+}
 
-  // 入力必須項目のバリデーションチェック
-  if (colorCodes.value.length === 0) {
-    formError.value = 'カラーコードを1つ以上追加してください。'
-    return
-  }
+async function confirmSend() {
   if (!serviceCentreName.value.trim()) {
     formError.value = 'サービスセンター名を入力してください。'
+    closeModal()
     return
   }
   if (!customerName.value.trim()) {
     formError.value = '依頼者名を入力してください。'
+    closeModal()
     return
   }
   if (!returnDateInput.value) {
     formError.value = '返却日を選択してください。'
+    closeModal()
     return
   }
 
@@ -175,7 +194,8 @@ async function sendRequest() {
       "Return Check_CCR": null,
       "note": note.value || null,
       "plate_type": type_of_plate.value,
-      "end_user_company": end_user_company.value || null // 新規項目
+      "material_type": material_type.value, // DB登録用のmaterial_typeを追加
+      "end_user_company": end_user_company.value || null
     })
 
     message.value = '申請が送信されました。'
@@ -184,6 +204,7 @@ async function sendRequest() {
     console.error(err)
     error.value = '申請送信中にエラーが発生しました。'
   }
+  closeModal()
 }
 
 function resetForm() {
@@ -192,8 +213,9 @@ function resetForm() {
   customerName.value = ''
   returnDateInput.value = ''
   note.value = ''
-  type_of_plate.value = '基準板' // リセット時に初期値へ戻す
-  end_user_company.value = ''
+  type_of_plate.value = '基準板'
+  material_type.value = 'Solid' // リセット時に初期値に戻す
+    end_user_company.value = ''
 }
 
 function goBackToDashboard() {
@@ -227,17 +249,17 @@ body {
   border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin-top: 1.3%; /* トップに少し余白 */
+  margin-top: 1.2%; /* トップに少し余白 */
 }
 
 .title {
   text-align: center;
   font-size: 28px;
   font-weight: bold;
-  margin-bottom: 2.5%;
+  margin-bottom: 1.5%;
   color: #333;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-  margin-top: 3%;
+  margin-top: -2%;
 }
 
 
@@ -353,5 +375,85 @@ ul li button:hover {
 
 .dashboard-button:hover {
   background-color: #7f9a3a;
+}
+
+/* 確認モーダルのスタイル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.confirm-list {
+  list-style-type: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.confirm-list li {
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #333;
+}
+
+.confirm-list strong {
+  margin-right: 5px;
+  font-weight: bold;
+}
+
+.modal-content .button-group {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-content .button-group button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-content .button-group button:first-child {
+  background-color: #00897b;
+  color: #fff;
+}
+
+.modal-content .button-group button:first-child:hover {
+  background-color: #00796b;
+}
+
+.modal-content .button-group button:last-child {
+  background-color: #b71c1c;
+  color: #fff;
+}
+
+.modal-content .button-group button:last-child:hover {
+  background-color: #7f0000;
 }
 </style>
