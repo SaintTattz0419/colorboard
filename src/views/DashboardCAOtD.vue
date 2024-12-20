@@ -5,7 +5,7 @@
     </div>
     <div class="dashboard-buttons">
       <button @click="goNewRequest" class="dashboard-button">新規申請</button>
-      <button @click="goReturnRequest" class="dashboard-button">返却</button>
+      <!--<button @click="goReturnRequest" class="dashboard-button">返却</button>-->
       <button @click="goAllRecords" class="dashboard-button">全履歴</button>
       <button @click="openChat" class="dashboard-button">チャット</button>
     </div>

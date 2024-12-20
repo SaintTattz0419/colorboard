@@ -27,7 +27,7 @@
         </thead>
         <tbody>
           <tr 
-            v-for="tx in allTransactions" 
+            v-for="tx in filteredTransactions" 
             :key="tx.id"
             class="hover-row"
           >
@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
@@ -60,6 +60,15 @@ const allTransactions = ref([]);
 const loadingAll = ref(false);
 const errorAll = ref('');
 const router = useRouter();
+
+// フィルタ用のデータ（必要に応じて追加してください）
+const statusFilter = ref('');
+const requestDateFilter = ref('');
+const colorCodeFilter = ref('');
+const plateTypeFilter = ref('');
+const chosenColorFilter = ref('');
+const serviceCentreFilter = ref('');
+const parentCodeFilter = ref('');
 
 onMounted(async () => {
   await fetchAllHistory();
@@ -93,6 +102,50 @@ async function fetchAllHistory() {
   loadingAll.value = false;
 }
 
+const filteredTransactions = computed(() => {
+  return allTransactions.value.filter(tx => {
+    const d = tx.data;
+
+    // ステータスフィルタ
+    if (statusFilter.value) {
+      const st = getStatusText(d);
+      if (st !== statusFilter.value) return false;
+    }
+
+    // 申請日フィルター(部分一致)
+    if (requestDateFilter.value && !formatDate(d["Request Date_CA OtD"]?.toDate()).includes(requestDateFilter.value)) {
+      return false;
+    }
+
+    // カラーコードフィルター(部分一致)
+    if (colorCodeFilter.value && !(d["color_code"] || []).join(", ").toLowerCase().includes(colorCodeFilter.value.toLowerCase())) {
+      return false;
+    }
+
+    // 色板タイプフィルター(部分一致)
+    if (plateTypeFilter.value && !(d["plate_type"] || '').toLowerCase().includes(plateTypeFilter.value.toLowerCase())) {
+      return false;
+    }
+
+    // 設定色フィルター(部分一致)
+    if (chosenColorFilter.value && !( (d["chosen_color"] || []).join(", ").toLowerCase().includes(chosenColorFilter.value.toLowerCase()) )) {
+      return false;
+    }
+
+    // 親コードフィルター(部分一致)
+    if (parentCodeFilter.value && !(d["parent_color"] || '').toLowerCase().includes(parentCodeFilter.value.toLowerCase())) {
+      return false;
+    }
+
+    // 依頼組織フィルター(部分一致)
+    if (serviceCentreFilter.value && !( (d["Service Centre Name"] || '').toLowerCase().includes(serviceCentreFilter.value.toLowerCase()) )) {
+      return false;
+    }
+
+    return true;
+  });
+});
+
 function formatDate(date) {
   if (!date) return '';
   const y = date.getFullYear();
@@ -102,6 +155,7 @@ function formatDate(date) {
 }
 
 function getStatusText(d) {
+  if (d["new_color_picker"]) return "採番要";
   if (!d["Approved Date_CCR"]) return "CCR承認要";
   if (!d["Actual Return Date"]) return "貸出中";
   if (!d["Return Check_CCR"]) return "CCR承認要";
@@ -112,6 +166,7 @@ function getStatusCellStyle(d) {
   const status = getStatusText(d);
   if (status === "貸出中") return { 'background-color': '#d93054', 'color': '#fff' };
   if (status === "CCR承認要") return { 'background-color': '#46c75d', 'color': '#fff' };
+  if (status === "採番要") return { 'background-color': '#4596e8', 'color': '#fff' };
   return {};
 }
 
