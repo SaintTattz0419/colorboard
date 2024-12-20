@@ -9,7 +9,7 @@ import ApprovalReturn from '../views/ApprovalReturn.vue'
 import ChatsCAOtD from '../views/ChatsCAOtD.vue'
 import ChatsCCR from '../views/ChatsCCR.vue'
 import AllRecordsCCR from '../views/AllRecordsCCR.vue'
-import ReturnRequestsCAOtD from '../views/ReturnRequestsCAOtD.vue'
+//import ReturnRequestsCAOtD from '../views/ReturnRequestsCAOtD.vue'
 import AllRecordsCAOtD from '../views/AllRecordsCAOtD.vue'
 
 
@@ -25,7 +25,7 @@ const routes = [
   { path: '/chats-caotd', component: ChatsCAOtD, meta: { requiresAuth: true } },
   { path: '/chats-ccr', component: ChatsCCR, meta: { requiresAuth: true } },
   { path: '/all-records-ccr', component: AllRecordsCCR, meta: { requiresAuth: true, role: 'CCR' } },
-  { path: '/return-requests-caotd', component: ReturnRequestsCAOtD,  },
+  //{ path: '/return-requests-caotd', component: ReturnRequestsCAOtD,  },
   { path: '/all-records-caotd', component: AllRecordsCAOtD },
   
 ]

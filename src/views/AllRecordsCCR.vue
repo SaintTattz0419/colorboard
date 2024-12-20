@@ -4,7 +4,6 @@
       <button @click="goBackToDashboard" class="back-button">ダッシュボードへ戻る</button>
       <h1 class="main-title">全履歴</h1>
     </div>
-
     <!-- フィルター群 -->
     <div class="filters">
       <div class="filter-group">
@@ -14,10 +13,11 @@
           <option value="CCR承認要">CCR承認要</option>
           <option value="貸出中">貸出中</option>
           <option value="返却済">返却済</option>
+          <option value="採番要">採番要</option>
         </select>
       </div>
       <div class="filter-group">
-        <label>申請日フィルター(YYYY-MM-DDで部分一致可):</label>
+        <label>申請日フィルター:</label>
         <input v-model="requestDateFilter" type="text" placeholder="申請日で検索">
       </div>
       <div class="filter-group">
@@ -33,8 +33,12 @@
         <input v-model="chosenColorFilter" type="text" placeholder="設定色で検索">
       </div>
       <div class="filter-group">
-        <label>依頼組織フィルター:</label>
-        <input v-model="serviceCentreFilter" type="text" placeholder="依頼組織で検索">
+        <label>親コードフィルター:</label>
+        <input v-model="parentCodeFilter" type="text" placeholder="親コードで検索">
+      </div>
+      <div class="filter-group">
+        <label>貸出先CCフィルター:</label>
+        <input v-model="serviceCentreFilter" type="text" placeholder="貸出先CCで検索">
       </div>
     </div>
 
@@ -55,20 +59,21 @@
           <thead>
             <tr>
               <th style="width:8%;">トランザクションID</th>
-              <th style="width:8%;">申請日</th>
+              <th style="width:6%;">申請日</th>
               <th style="width:14%;">カラーコード</th>
               <th style="width:10%;">素材タイプ</th>
               <th style="width:8%;">色板タイプ</th>
-              <th style="width:12%;">設定色</th>
-              <th style="width:12%;">貸出先CC</th>
-              <th style="width:10%;">CC担当者名</th>
-              <th style="width:10%;">顧客会社名</th>
-              <th style="width:8%;">返却予定</th>
-              <th style="width:6%;">状況</th>
-              <th style="width:22%;">Note</th>
+              <th style="width: 5%;">親コード</th>
+              <th style="width:10%;">設定色</th>
+              <th style="width:8%;">貸出先CC</th>
+              <th style="width:8%;">CC担当者名</th>
+              <th style="width:12%;">顧客会社名</th>
+              <th style="width:7%;">返却予定</th>
+              <th style="width:7%;">返却実績日</th>
+              <th style="width:5%;">状況</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="records-container">
             <tr 
               v-for="tx in filteredTransactions" 
               :key="tx.id"
@@ -80,13 +85,14 @@
               <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
               <td>{{ tx.data["material_type"] || "" }}</td>
               <td>{{ tx.data["plate_type"] || "" }}</td>
+              <td>{{ tx.data["parent_color"] }}</td>
               <td>{{ tx.data["chosen_color"] ? tx.data["chosen_color"].join(", ") : "" }}</td>
               <td>{{ tx.data["Service Centre Name"] }}</td>
               <td>{{ tx.data["Customer Name"] }}</td>
               <td>{{ tx.data["end_user_company"] }}</td>
               <td>{{ formatDate(tx.data["Return Date"]?.toDate()) }}</td>
+              <td>{{ formatDate(tx.data["Actual Return Date"]?.toDate()) }}</td>
               <td :style="getStatusCellStyle(tx.data)">{{ getStatusText(tx.data) }}</td>
-              <td>{{ tx.data.note }}</td>
             </tr>
           </tbody>
         </table>
@@ -105,7 +111,7 @@
 
             <div class="form-group">
               <label>カラーコード (カンマ区切り):</label>
-              <textarea v-model="editData['color_code_input']" placeholder="複数カラーコードをカンマ(,)で区切って入力"></textarea>
+              <textarea v-model="editData['color_code_input']" @input="toUpperCase('color_code_input')" placeholder="複数カラーコードをカンマ(,)で区切って入力"></textarea>
             </div>
 
             <div class="form-group">
@@ -120,7 +126,22 @@
 
             <div class="form-group">
               <label>設定色 (カンマ区切り):</label>
-              <textarea v-model="editData['chosen_color_input']" placeholder="複数設定色をカンマ(,)で区切って入力"></textarea>
+              <textarea v-model="editData['chosen_color_input']" @input="toUpperCase('chosen_color_input')" placeholder="複数設定色をカンマ(,)で区切って入力"></textarea>
+            </div>
+
+            <!-- 親コード入力欄 -->
+            <div v-if="editData['new_color_picker']" class="form-group">
+              <label>親コード:</label>
+              <input v-model="editData['parent_color']" type="text" placeholder="親コードを入力">
+            </div>
+
+            <!-- 採番ステータス選択欄 -->
+            <div v-if="editData['new_color_picker']" class="form-group">
+              <label>採番ステータス:</label>
+              <select v-model="numberingStatus">
+                <option value="採番中">採番中</option>
+                <option value="採番完了">採番完了</option>
+              </select>
             </div>
 
             <div class="form-group">
@@ -146,11 +167,6 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label>Note:</label>
-              <input v-model="editData['note']" type="text">
-            </div>
-
             <div class="button-group">
               <button @click="updateRecord" class="update-button">更新</button>
               <button @click="cancelEdit" class="cancel-button">キャンセル</button>
@@ -165,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { db } from '../firebase';
 import { collection, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
@@ -183,14 +199,25 @@ const colorCodeFilter = ref('');
 const plateTypeFilter = ref('');
 const chosenColorFilter = ref('');
 const serviceCentreFilter = ref('');
+const parentCodeFilter = ref('');
 
 const editMode = ref(false);
 const editData = ref(null);
 let editDocId = null;
 const returnDateInput = ref('');
+// 採番ステータス
+const numberingStatus = ref("採番中"); // デフォルト値を設定
 
 const role = sessionStorage.getItem('role');
 const ccrName = sessionStorage.getItem('name'); // CCRログインユーザー名を取得
+
+onMounted(() => {
+  if (role !== 'CCR') {
+    router.push('/login');
+  } else {
+    fetchAllHistory();
+  }
+});
 
 function goBackToDashboard() {
   router.push('/dashboard-ccr'); // CCRダッシュボードへ戻る
@@ -217,9 +244,8 @@ async function fetchAllHistory() {
   loadingAll.value = false;
 }
 
-fetchAllHistory();
-
 function getStatusText(d) {
+  if (d["new_color_picker"]) return "採番要";
   if (!d["Approved Date_CCR"]) return "CCR承認要";
   if (!d["Actual Return Date"]) return "貸出中";
   if (!d["Return Check_CCR"]) return "CCR承認要";
@@ -230,6 +256,7 @@ function getStatusCellStyle(d) {
   const status = getStatusText(d);
   if (status === "貸出中") return { 'background-color': '#d93054', 'color': '#fff' };
   if (status === "CCR承認要") return { 'background-color': '#46c75d', 'color': '#fff' };
+  if (status === "採番要") return { 'background-color': '#4596e8', 'color': '#fff' };
   return {};
 }
 
@@ -271,6 +298,11 @@ const filteredTransactions = computed(() => {
       return false;
     }
 
+    // 親コードフィルター(部分一致)
+    if (parentCodeFilter.value && !(d["parent_color"] || '').toLowerCase().includes(parentCodeFilter.value.toLowerCase())) {
+      return false;
+    }
+
     // 依頼組織フィルター(部分一致)
     if (serviceCentreFilter.value && !( (d["Service Centre Name"] || '').toLowerCase().includes(serviceCentreFilter.value.toLowerCase()) )) {
       return false;
@@ -288,11 +320,13 @@ function editRecord(id) {
     const chosen_color_str = (record.data["chosen_color"] || []).join(", ");
     const plate_type_str = record.data["plate_type"] || '';
 
-    editData.value = { 
+    editData.value = {
       ...record.data,
       color_code_input: color_code_str,
       chosen_color_input: chosen_color_str,
-      plate_type_input: plate_type_str
+      plate_type_input: plate_type_str,
+      parent_color: record.data["parent_color"] || '', // 親コードの初期値を設定
+      new_color_picker: record.data["new_color_picker"] || false
     };
     editDocId = record.id;
     if (editData.value["Return Date"]) {
@@ -301,6 +335,9 @@ function editRecord(id) {
     } else {
       returnDateInput.value = '';
     }
+
+    // 採番ステータスの初期値を設定
+    numberingStatus.value = editData.value["new_color_picker"] ? "採番中" : "";
   }
 }
 
@@ -308,12 +345,15 @@ async function updateRecord() {
   if (!editDocId || !editData.value) return;
   try {
     const docRef = doc(db, 'colorboards', editDocId);
+
+    // color_code と chosen_color の値を大文字に変換
     const updatedColorCodes = editData.value.color_code_input.split(',')
-      .map(c => c.trim())
+      .map(c => c.trim().toUpperCase()) // 大文字に変換
       .filter(c => c);
     const updatedChosenColors = editData.value.chosen_color_input.split(',')
-      .map(c => c.trim())
+      .map(c => c.trim().toUpperCase()) // 大文字に変換
       .filter(c => c);
+    
     const updatedPlateType = editData.value.plate_type_input.trim();
 
     let returnDateUpdate = null;
@@ -322,16 +362,21 @@ async function updateRecord() {
       returnDateUpdate = Timestamp.fromDate(new Date(Number(y), Number(m) - 1, Number(d)));
     }
 
+    // 採番ステータスが「採番完了」なら new_color_picker を false に設定
+    const newColorPickerUpdate = numberingStatus.value === "採番完了" ? false : editData.value["new_color_picker"];
+
     const updates = {
       "color_code": updatedColorCodes,
       "chosen_color": updatedChosenColors.length > 0 ? updatedChosenColors : null,
       "plate_type": updatedPlateType || null,
-      "material_type": editData.value["material_type"] || null, // 素材タイプを更新
+      "material_type": editData.value["material_type"] || null,
       "Customer Name": editData.value["Customer Name"],
       "Service Centre Name": editData.value["Service Centre Name"],
       "Status": editData.value["Status"],
       "note": editData.value["note"] || null,
-      "Return Date": returnDateUpdate
+      "Return Date": returnDateUpdate,
+      "parent_color": editData.value["parent_color"] || null,
+      "new_color_picker": newColorPickerUpdate
     };
 
     if (editData.value["Status"] === true) {
@@ -356,6 +401,7 @@ function cancelEdit() {
   editData.value = null;
   editDocId = null;
   returnDateInput.value = '';
+  numberingStatus.value = "採番中"; // 採番ステータスをリセット
 }
 
 function downloadCSV() {
@@ -368,8 +414,9 @@ function downloadCSV() {
       "返却実績日": formatDate(d["Actual Return Date"]?.toDate()),
       "CA申請者": d["CA OtD Name"] || "",
       "カラーコード": (d["color_code"] || []).join(", "),
-      "素材タイプ": d["material_type"] || "", // 素材タイプを追加
+      "素材タイプ": d["material_type"] || "",
       "色板タイプ": d["plate_type"] || "",
+      "親コード": d["parent_color"] || "",
       "設定色": (d["chosen_color"] || []).join(", "),
       "依頼組織": d["Service Centre Name"] || "",
       "依頼者": d["Customer Name"] || "",
@@ -388,6 +435,7 @@ function downloadCSV() {
     "カラーコード": "",
     "素材タイプ": "",
     "色板タイプ": "",
+    "親コード": "",
     "設定色": "",
     "依頼組織": "",
     "依頼者": "",
@@ -422,12 +470,20 @@ function downloadCSV() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// 英字を大文字に変換する関数
+function toUpperCase(field) {
+  if (editData.value && editData.value[field]) {
+    editData.value[field] = editData.value[field].toUpperCase();
+  }
+}
 </script>
 
 <style scoped>
+/* 変更なし(CSSは以前のコードと同じ) */
 .download-icon {
-  width: 28px;
-  height: 28px;
+  width: 1.6%;
+  height: 1.6%;
   cursor: pointer;
   margin-right: 10px;
   transition: transform 0.2s;
@@ -459,6 +515,10 @@ function downloadCSV() {
   justify-content: center;
   position: relative;
   margin-bottom: 20px;
+}
+
+.records-container{
+  cursor: pointer;
 }
 
 .back-button {

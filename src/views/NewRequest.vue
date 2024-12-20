@@ -22,6 +22,7 @@
           </ul>
         </div>
 
+        <!--
         <div class="form-group">
           <label>色板タイプ：</label>
           <select v-model="type_of_plate">
@@ -30,6 +31,7 @@
             <option value="両方">基準板 & ロット板</option>
           </select>
         </div>
+        -->
 
         <div class="form-group">
           <label>素材タイプ：</label>
@@ -78,7 +80,7 @@
           <p>以下の内容で新規申請しますか？</p>
           <ul class="confirm-list">
             <li><strong>Color Codes:</strong> {{ colorCodes.join(", ") }}</li>
-            <li><strong>色板タイプ:</strong> {{ type_of_plate }}</li>
+            <!--<li><strong>色板タイプ:</strong> {{ type_of_plate }}</li>-->
             <li><strong>素材タイプ:</strong> {{ material_type === "Metallic" ? "メタリック" : "ソリッド" }}</li>
             <li><strong>貸出先CC:</strong> {{ serviceCentreName }}</li>
             <li><strong>CC担当者名:</strong> {{ customerName }}</li>
@@ -93,6 +95,22 @@
         </div>
       </div>
 
+      <div v-if="showEmailTemplate" class="modal-overlay" @click="closeEmailTemplateModal">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h2>メールテンプレート</h2>
+            <button class="copy-button" @click="copyTemplateToClipboard">
+              コピー
+            </button>
+          </div>
+          <p class="email-subject"><strong>件名:</strong> {{ emailSubject }}</p>
+          <pre>{{ emailTemplate }}</pre>
+          <div class="button-group">
+            <button @click="closeEmailTemplateModal">閉じる</button>
+          </div>
+        </div>
+      </div>
+
       <div v-if="message" class="success-message">{{ message }}</div>
       <div v-if="error" class="error-message">{{ error }}</div>
     </div>
@@ -100,9 +118,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { db } from '../firebase'
-import { collection, addDoc, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, Timestamp, getDocs, query, where } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
 const name = sessionStorage.getItem('name')
@@ -115,19 +133,53 @@ const customerName = ref('')
 const end_user_company = ref('')
 const returnDateInput = ref('')
 const note = ref('')
-const type_of_plate = ref('基準板')
-const material_type = ref('Solid') // 素材タイプの追加、初期値はソリッド
-
+//const type_of_plate = ref('基準板')
+const material_type = ref('Solid')
 const today = new Date()
 const maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 90)
 const maxReturnDate = maxDate.toISOString().split('T')[0]
-
 const message = ref('')
 const error = ref('')
 const formError = ref('')
 const router = useRouter()
-
 const showConfirmation = ref(false)
+const showEmailTemplate = ref(false)
+const emailTemplate = ref('')
+const emailSubject = ref('') // メール件名用の ref を追加
+const loggedInUserName = ref('')
+const ccrUsers = ref([])
+const transactionId = ref('') // トランザクションID用の ref を追加
+
+onMounted(async () => {
+  await fetchLoggedInUserName()
+  await fetchCCRUsers()
+})
+
+async function fetchLoggedInUserName() {
+  try {
+    const usersCollection = collection(db, 'users')
+    const userQuery = query(usersCollection, where("Name", "==", name))
+    const querySnapshot = await getDocs(userQuery)
+    if (!querySnapshot.empty) {
+      loggedInUserName.value = querySnapshot.docs[0].data().Name
+    } else {
+      console.error('User not found')
+    }
+  } catch (err) {
+    console.error('Error fetching user:', err)
+  }
+}
+
+async function fetchCCRUsers() {
+  try {
+    const usersCollection = collection(db, 'users')
+    const ccrQuery = query(usersCollection, where("role", "==", "CCR"))
+    const querySnapshot = await getDocs(ccrQuery)
+    ccrUsers.value = querySnapshot.docs.map(doc => doc.data().Name)
+  } catch (err) {
+    console.error('Error fetching CCR users:', err)
+  }
+}
 
 function generateTransactionId(yearYY) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -157,7 +209,12 @@ function closeModal() {
   showConfirmation.value = false
 }
 
+function closeEmailTemplateModal() {
+  showEmailTemplate.value = false
+}
+
 async function confirmSend() {
+  // バリデーションチェック
   if (!serviceCentreName.value.trim()) {
     formError.value = 'サービスセンター名を入力してください。'
     closeModal()
@@ -177,9 +234,10 @@ async function confirmSend() {
   try {
     const requestDate = new Date()
     const yearYY = String(requestDate.getFullYear()).slice(-2)
-    const transactionId = generateTransactionId(yearYY)
+    transactionId.value = generateTransactionId(yearYY) // トランザクションIDを生成
     const chosenDate = new Date(returnDateInput.value)
 
+    // Firestore にデータを追加
     await addDoc(collection(db, 'colorboards'), {
       "Approved Date_CCR": null,
       "color_code": colorCodes.value,
@@ -188,17 +246,40 @@ async function confirmSend() {
       "Return Date": Timestamp.fromDate(chosenDate),
       "Service Centre Name": serviceCentreName.value,
       "Status": false,
-      "transaction id": transactionId,
+      "transaction id": transactionId.value, // 生成したトランザクションIDを登録
       "CA OtD Name": name,
       "Actual Return Date": null,
       "Return Check_CCR": null,
       "note": note.value || null,
-      "plate_type": type_of_plate.value,
-      "material_type": material_type.value, // DB登録用のmaterial_typeを追加
-      "end_user_company": end_user_company.value || null
+      //"plate_type": type_of_plate.value,
+      "material_type": material_type.value,
+      "end_user_company": end_user_company.value || null,
+      "new_color_picker": false // new_color_picker フィールドを追加し、false を設定
     })
 
     message.value = '申請が送信されました。'
+
+    // メールテンプレートの作成と表示 (colorCodes が存在する場合のみ)
+    if (colorCodes.value.length > 0) {
+      const ccrUsersStr = ccrUsers.value.join('さん、')
+      emailSubject.value = `${transactionId.value}の件` // トランザクションIDを件名に含める
+      emailTemplate.value = `
+CCR
+${ccrUsersStr}さん
+
+お世話になっております。
+
+${serviceCentreName.value}_${customerName.value}さんより"${colorCodes.value.join(", ")}"の色板貸し出し依頼がありました。
+お手数ですがご手配をいただけますでしょうか。
+
+宜しくお願いいたします。
+
+CA OtD
+${loggedInUserName.value}
+      `
+      showEmailTemplate.value = true
+    }
+
     resetForm()
   } catch (err) {
     console.error(err)
@@ -213,13 +294,31 @@ function resetForm() {
   customerName.value = ''
   returnDateInput.value = ''
   note.value = ''
-  type_of_plate.value = '基準板'
-  material_type.value = 'Solid' // リセット時に初期値に戻す
-    end_user_company.value = ''
+  //type_of_plate.value = '基準板'
+  material_type.value = 'Solid'
+  end_user_company.value = ''
 }
 
 function goBackToDashboard() {
   router.push('/')
+}
+
+function copyTemplateToClipboard() {
+  const textToCopy = `件名: ${emailSubject.value}\n\n${emailTemplate.value}`
+  navigator.clipboard.writeText(textToCopy)
+    .then(() => {
+      message.value = 'メールテンプレートをコピーしました！'
+      setTimeout(() => {
+        message.value = ''
+      }, 2000)
+    })
+    .catch(err => {
+      console.error('Failed to copy: ', err)
+      error.value = 'コピーに失敗しました。'
+      setTimeout(() => {
+        error.value = ''
+      }, 2000)
+    })
 }
 </script>
 
@@ -261,7 +360,6 @@ body {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
   margin-top: -2%;
 }
-
 
 /* 各フォームグループのスタイル */
 .form-group {
@@ -455,5 +553,44 @@ ul li button:hover {
 
 .modal-content .button-group button:last-child:hover {
   background-color: #7f0000;
+}
+
+/* メールテンプレートモーダルのヘッダー */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* コピーボタン */
+.copy-button {
+  background-color: #00897b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  background-color: #00796b;
+}
+
+/* メールの件名 */
+.email-subject {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+/* メールテンプレートのスタイル */
+.modal-content pre {
+  white-space: pre-wrap;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 20px;
 }
 </style>

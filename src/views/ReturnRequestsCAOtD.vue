@@ -1,5 +1,6 @@
+<!--ReturnRequest.vue-->
 <template>
-  <div class="return-container">
+ <!--<div class="return-container">
     <h2 class="title">返却可能なリスト</h2>
     <div v-if="loadingReturn" class="loading-message">読み込み中...</div>
     <div v-else-if="errorReturn" class="error-message">{{ errorReturn }}</div>
@@ -35,8 +36,8 @@
             <td>{{ tx.data["Service Centre Name"] }}</td>
             <td>{{ tx.data["end_user_company"] }}</td>
             <td :style="getStatusCellStyle(tx.data)">{{ getStatusText(tx.data) }}</td>
-            <td>
-              <!-- ラジオボタンで「単・複数色」or「新規色作成」を選択 -->
+            <td>-->
+              <!-- ラジオボタンで「単・複数色」or「新規色作成」を選択 
               <div class="radio-group">
                 <label>
                   <input 
@@ -58,22 +59,22 @@
                   >
                   新規色作成
                 </label>
-              </div>
+              </div>-->
 
-              <!-- 単・複数色選択時 -->
+              <!-- 単・複数色選択時 
               <div v-if="colorMode[tx.id] === 'multi'">
-                <div v-if="!(chosenColors[tx.id] && chosenColors[tx.id].length) || chosenColors[tx.id].includes('新規色作成')">
-                  <!-- 色が未選択の場合や「新規色作成」が含まれる場合はクリア -->
+                <div v-if="!(chosenColors[tx.id] && chosenColors[tx.id].length) || chosenColors[tx.id].includes('新規色作成')">-->
+                  <!-- 色が未選択の場合や「新規色作成」が含まれる場合はクリア
                   <button class="set-color-button" @click.stop="openColorModal(tx.id, tx.data.color_code)">色登録</button>
                 </div>
-                <div v-else>
-                  <!-- 選択済みの色を表示 -->
+                <div v-else> -->
+                  <!-- 選択済みの色を表示 
                   <span class="chosen-colors">{{ chosenColors[tx.id].join(", ") }}</span>
                   <button class="set-color-button" @click.stop="openColorModal(tx.id, tx.data.color_code)">再設定</button>
                 </div>
-              </div>
+              </div>-->
 
-              <!-- 新規色作成選択時 -->
+              <!-- 新規色作成選択時 
               <div v-else-if="colorMode[tx.id] === 'new'">
                 <span class="chosen-colors">新規色作成</span>
               </div>
@@ -91,9 +92,9 @@
         <button class="submit-button" @click="submitReturn">返却登録</button>
       </div>
     </div>
-    <div v-if="messageReturn" class="success-message">{{ messageReturn }}</div>
+    <div v-if="messageReturn" class="success-message">{{ messageReturn }}</div>-->
 
-    <!-- 色登録用モーダル -->
+    <!-- 色登録用モーダル 
     <div v-if="showColorModal" class="modal-overlay" @click="closeColorModal">
       <div class="modal-content" @click.stop>
         <h3>色登録</h3>
@@ -119,11 +120,11 @@
         </div>
       </div>
     </div>
-  </div>
+  </div>-->
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+/*import { ref, onMounted } from 'vue';
 import { db } from '../firebase';
 import { collection, getDocs, query, where, doc, updateDoc, Timestamp } from 'firebase/firestore';
 
@@ -274,7 +275,7 @@ async function submitReturn() {
     console.error(err);
     errorReturn.value = '返却登録中にエラーが発生しました。';
   }
-}
+}*/
 </script>
 
 <style scoped>

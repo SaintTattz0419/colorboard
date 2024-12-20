@@ -1,6 +1,12 @@
 <template>
   <header class="app-header">
-    <h1 @click="goToDashboard" class="header-title">Color Board Management</h1>
+    <div class="logo-container" @click="goToDashboard">
+      <div class="hexagon-container">
+        <div class="hexagon"></div>
+        <div class="hexagon"></div>
+      </div>
+      <h1 class="header-title">Color Board Management</h1>
+    </div>
     <button @click="logout" class="logout-button">ログアウト</button>
   </header>
 </template>
@@ -32,36 +38,76 @@ function goToDashboard() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(90deg, #b92b27, #1565c0);
-  color: #ffffff;
-  padding: 15px 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #444; /* Darker background */
+  background-image: linear-gradient(
+      45deg,
+      #555 25%,
+      transparent 25%,
+      transparent 75%,
+      #555 75%,
+      #555
+    ),
+    linear-gradient(
+      45deg,
+      #555 25%,
+      transparent 25%,
+      transparent 75%,
+      #555 75%,
+      #555
+    ); /* Geometric pattern */
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  color: #fff;
+  padding: 20px 30px;
+  border-bottom: 5px solid #d40000;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
 }
 
 .header-title {
-  cursor: pointer;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: bold;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
   margin: 0;
+  color: #fff;
+  font-family: "Roboto", sans-serif; /* Modern font */
+  text-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5); /* Text shadow */
 }
 
 .logout-button {
-  background: #065c06;
-  color: white;
+  background-color: #d40000;
+  color: #fff;
   border: none;
   padding: 10px 25px;
   cursor: pointer;
-  border-radius: 25px;
-  font-size: 16px;
+  border-radius: 20px;
+  font-size: 14px;
   font-weight: bold;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Button shadow */
 }
 
 .logout-button:hover {
-  background: #3e92cc;
-  transform: scale(1.05);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+  background-color: #ff2424;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); /* Enhanced shadow on hover */
+}
+
+/* Hexagon styling */
+.hexagon-container {
+  display: flex;
+  margin-right: 20px;
+}
+
+.hexagon {
+  width: 20px;
+  height: 12px;
+  background-color: #d40000;
+  position: relative;
+  margin-right: 5px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
 }
 </style>
