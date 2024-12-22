@@ -1,13 +1,62 @@
 <template>
   <div class="history-container">
-    <h2 class="title">全履歴</h2>
+    <div class="header">
+      <button @click="goBackToDashboard" class="dashboard-button">ダッシュボードに戻る</button>
+      <h1 class="title">全履歴</h1>
+    </div>
+    <!-- フィルター群 -->
+    <div class="filters">
+      <div class="filter-group">
+        <label>状況:</label>
+        <select v-model="statusFilter">
+          <option value="">すべて</option>
+          <option value="CCR承認要">CCR承認要</option>
+          <option value="貸出中">貸出中</option>
+          <option value="返却済">返却済</option>
+          <option value="採番要">採番要</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>申請日:</label>
+        <input v-model="requestDateFilter" type="text" placeholder="申請日で検索" />
+      </div>
+      <div class="filter-group">
+        <label>カラーコード:</label>
+        <input v-model="colorCodeFilter" type="text" placeholder="カラーコードで検索" @input="colorCodeFilter = colorCodeFilter.toUpperCase()" />
+      </div>
+      <div class="filter-group">
+        <label>素材タイプ:</label>
+        <select v-model="materialTypeFilter">
+          <option value="">すべて</option>
+          <option value="メタリック">メタリック</option>
+          <option value="ソリッド">ソリッド</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>色板タイプ:</label>
+        <select v-model="plateTypeFilter">
+          <option value="">すべて</option>
+          <option value="基準板">基準板</option>
+          <option value="ロット板">ロット板</option>
+          <option value="基準板 & ロット板">基準板 & ロット板</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>設定色:</label>
+        <input v-model="chosenColorFilter" type="text" placeholder="設定色で検索" @input="chosenColorFilter = chosenColorFilter.toUpperCase()" />
+      </div>
+      <div class="filter-group">
+        <label>親コード:</label>
+        <input v-model="parentCodeFilter" type="text" placeholder="親コードで検索" />
+      </div>
+      <div class="filter-group">
+        <label>貸出先CC:</label>
+        <input v-model="serviceCentreFilter" type="text" placeholder="貸出先CCで検索" />
+      </div>
+    </div>
     <div v-if="loadingAll" class="loading-message">読み込み中...</div>
     <div v-else-if="errorAll" class="error-message">{{ errorAll }}</div>
     <div v-else>
-      <!-- ダッシュボードに戻るボタン -->
-      <div class="dashboard-button-container">
-        <button @click="goBackToDashboard" class="dashboard-button">ダッシュボードに戻る</button>
-      </div>
       <table class="styled-table">
         <thead>
           <tr>
@@ -16,6 +65,7 @@
             <th class="color-code-column">カラーコード</th>
             <th class="material-type-column">素材タイプ</th>
             <th class="plate-type-column">色板タイプ</th>
+            <th class="parent-code-column">親コード</th>
             <th class="chosen-color-column">設定色</th>
             <th>CC担当者名</th>
             <th>貸出先CC</th>
@@ -26,16 +76,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr 
-            v-for="tx in filteredTransactions" 
-            :key="tx.id"
-            class="hover-row"
-          >
+          <tr v-for="tx in filteredTransactions" :key="tx.id" class="hover-row">
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
             <td>{{ tx.data["material_type"] }}</td>
             <td>{{ tx.data["plate_type"] || "" }}</td>
+            <td>{{ tx.data["parent_color"] }}</td>
             <td>{{ tx.data["chosen_color"] ? tx.data["chosen_color"].join(", ") : "" }}</td>
             <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
@@ -46,6 +93,9 @@
           </tr>
         </tbody>
       </table>
+      <div v-if="filteredTransactions.length === 0" class="no-data-message">
+        該当するデータがありません。
+      </div>
     </div>
   </div>
 </template>
@@ -61,10 +111,11 @@ const loadingAll = ref(false);
 const errorAll = ref('');
 const router = useRouter();
 
-// フィルタ用のデータ（必要に応じて追加してください）
+// フィルタ用のデータ
 const statusFilter = ref('');
 const requestDateFilter = ref('');
 const colorCodeFilter = ref('');
+const materialTypeFilter = ref(''); // 素材タイプフィルター用の変数を追加
 const plateTypeFilter = ref('');
 const chosenColorFilter = ref('');
 const serviceCentreFilter = ref('');
@@ -84,11 +135,11 @@ async function fetchAllHistory() {
     const tmp = [];
     snap.forEach(docSnap => tmp.push({ id: docSnap.id, data: docSnap.data() }));
 
-    // 申請日が今日に近いものを上に並べ替え
+    // 申請日が新しい順に並べ替え
     tmp.sort((a, b) => {
       const dateA = a.data["Request Date_CA OtD"]?.toDate() || new Date(0);
       const dateB = b.data["Request Date_CA OtD"]?.toDate() || new Date(0);
-      return dateB - dateA; // 降順に並べ替え
+      return dateB - dateA;
     });
 
     allTransactions.value = tmp;
@@ -117,28 +168,33 @@ const filteredTransactions = computed(() => {
       return false;
     }
 
-    // カラーコードフィルター(部分一致)
-    if (colorCodeFilter.value && !(d["color_code"] || []).join(", ").toLowerCase().includes(colorCodeFilter.value.toLowerCase())) {
+    // カラーコードフィルター(部分一致かつ大文字に変換)
+    if (colorCodeFilter.value && !(d["color_code"] || []).join(", ").toUpperCase().includes(colorCodeFilter.value.toUpperCase())) {
       return false;
     }
 
-    // 色板タイプフィルター(部分一致)
-    if (plateTypeFilter.value && !(d["plate_type"] || '').toLowerCase().includes(plateTypeFilter.value.toLowerCase())) {
+    // 素材タイプフィルター
+    if (materialTypeFilter.value && d["material_type"] !== materialTypeFilter.value) {
       return false;
     }
 
-    // 設定色フィルター(部分一致)
-    if (chosenColorFilter.value && !( (d["chosen_color"] || []).join(", ").toLowerCase().includes(chosenColorFilter.value.toLowerCase()) )) {
+    // 色板タイプフィルター(完全一致)
+    if (plateTypeFilter.value && d["plate_type"] !== plateTypeFilter.value) {
+      return false;
+    }
+
+    // 設定色フィルター(部分一致かつ大文字に変換)
+    if (chosenColorFilter.value && !((d["chosen_color"] || []).join(", ").toUpperCase().includes(chosenColorFilter.value.toUpperCase()))) {
       return false;
     }
 
     // 親コードフィルター(部分一致)
-    if (parentCodeFilter.value && !(d["parent_color"] || '').toLowerCase().includes(parentCodeFilter.value.toLowerCase())) {
+    if (parentCodeFilter.value && !(d["parent_color"] || '').toUpperCase().includes(parentCodeFilter.value.toUpperCase())) {
       return false;
     }
 
     // 依頼組織フィルター(部分一致)
-    if (serviceCentreFilter.value && !( (d["Service Centre Name"] || '').toLowerCase().includes(serviceCentreFilter.value.toLowerCase()) )) {
+    if (serviceCentreFilter.value && !((d["Service Centre Name"] || '').toUpperCase().includes(serviceCentreFilter.value.toUpperCase()))) {
       return false;
     }
 
@@ -182,30 +238,36 @@ function goBackToDashboard() {
   font-family: 'Arial', sans-serif;
   background: #f4f4f9;
   color: #333;
-  max-width: 85%;
+  max-width: 90%;
   margin: 0 auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   border-radius: 10px;
   margin-top: 1%;
 }
 
-/* タイトルのスタイル */
+/* ヘッダーのスタイル */
+.header {
+  display: flex;
+  align-items: center; /* 要素を垂直方向に中央揃え */
+  margin-bottom: 20px;
+  position: relative;
+}
+
 .title {
   font-size: 28px;
-  text-align: center;
   font-weight: bold;
-  margin-bottom: 20px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  margin: 0 auto; /* 上下マージンは 0、左右は auto で中央寄せ */
+  text-align: center; /* テキストを中央揃え */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
 }
 
 /* ダッシュボードに戻るボタン */
-.dashboard-button-container {
-  text-align: right;
-  margin-bottom: 3px;
-}
-
 .dashboard-button {
-  background-color: #262727; /*#003366*/
+  background-color: #262727;
   color: #ffffff;
   padding: 6px 11px;
   font-size: 14px;
@@ -214,10 +276,38 @@ function goBackToDashboard() {
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  z-index: 10;
+  margin-left: auto; /* 左マージンを auto に設定 */
 }
 
 .dashboard-button:hover {
   background-color: #00509e;
+}
+
+/* フィルター群 */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  margin-bottom: 10px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.filter-group input, .filter-group select {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
 /* テーブルのスタイル */
@@ -231,7 +321,7 @@ function goBackToDashboard() {
 }
 
 .styled-table th {
-  background-color: #e4d502;/*#339715;*/
+  background-color: #e4d502;
   color: #424141;
   padding: 12px;
   font-size: 14px;
@@ -257,36 +347,41 @@ function goBackToDashboard() {
 
 /* トランザクションID列の幅を縮小 */
 .transaction-id-column {
-  width: 10%;
+  width: 9.5%;
 }
 
-.plate-type-column{
+.plate-type-column {
   width: 6%;
 }
 
-.material-type-column{
+.material-type-column {
   width: 6%;
 }
 
-.end-user-company-column{
+.end-user-company-column {
   width: 14%;
 }
 
-.requested-date-column{
+.requested-date-column {
   width: 6.5%;
 }
 
-.chosen-color-column{
+.chosen-color-column {
   width: 10%;
 }
 
-.color-code-column{
+.color-code-column {
   width: 13%;
+}
+
+.plate-type-column{
+  width: 8%;
 }
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .styled-table th, .styled-table td {
+  .styled-table th,
+  .styled-table td {
     font-size: 12px;
     padding: 8px;
   }
@@ -294,6 +389,28 @@ function goBackToDashboard() {
   .transaction-id-column {
     width: 11%;
   }
-
 }
+
+/* メッセージ用のスタイル */
+.loading-message,
+.error-message,
+.success-message,
+.no-data-message {
+  text-align: center;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+.error-message {
+  color: red;
+}
+
+.success-message {
+  color: green;
+}
+
+.no-data-message {
+  color: #333;
+}
+
 </style>

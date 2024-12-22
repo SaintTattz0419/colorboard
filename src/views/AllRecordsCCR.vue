@@ -7,7 +7,7 @@
     <!-- フィルター群 -->
     <div class="filters">
       <div class="filter-group">
-        <label>状況フィルター:</label>
+        <label>状況:</label>
         <select v-model="statusFilter">
           <option value="">すべて</option>
           <option value="CCR承認要">CCR承認要</option>
@@ -17,27 +17,40 @@
         </select>
       </div>
       <div class="filter-group">
-        <label>申請日フィルター:</label>
+        <label>申請日:</label>
         <input v-model="requestDateFilter" type="text" placeholder="申請日で検索">
       </div>
       <div class="filter-group">
-        <label>カラーコードフィルター:</label>
-        <input v-model="colorCodeFilter" type="text" placeholder="カラーコードで検索">
+        <label>カラーコード:</label>
+        <input v-model="colorCodeFilter" type="text" placeholder="カラーコードで検索" @input="colorCodeFilter = colorCodeFilter.toUpperCase()">
       </div>
       <div class="filter-group">
-        <label>色板タイプフィルター:</label>
-        <input v-model="plateTypeFilter" type="text" placeholder="色板タイプで検索">
+        <label>素材タイプ:</label>
+        <select v-model="materialTypeFilter">
+          <option value="">すべて</option>
+          <option value="メタリック">メタリック</option>
+          <option value="ソリッド">ソリッド</option>
+        </select>
       </div>
       <div class="filter-group">
-        <label>設定色フィルター:</label>
-        <input v-model="chosenColorFilter" type="text" placeholder="設定色で検索">
+        <label>色板タイプ:</label>
+        <select v-model="plateTypeFilter">
+          <option value="">すべて</option>
+          <option value="基準板">基準板</option>
+          <option value="ロット板">ロット板</option>
+          <option value="基準板 & ロット板">基準板 & ロット板</option>
+        </select>
       </div>
       <div class="filter-group">
-        <label>親コードフィルター:</label>
-        <input v-model="parentCodeFilter" type="text" placeholder="親コードで検索">
+        <label>設定色:</label>
+        <input v-model="chosenColorFilter" type="text" placeholder="設定色で検索" @input="chosenColorFilter = chosenColorFilter.toUpperCase()">
       </div>
       <div class="filter-group">
-        <label>貸出先CCフィルター:</label>
+        <label>親コード:</label>
+        <input v-model="parentCodeFilter" type="text" placeholder="親コードで検索" @input="parentCodeFilter = parentCodeFilter.toUpperCase()">
+      </div>
+      <div class="filter-group">
+        <label>貸出先CC:</label>
         <input v-model="serviceCentreFilter" type="text" placeholder="貸出先CCで検索">
       </div>
     </div>
@@ -102,7 +115,10 @@
       <!-- 編集モーダル -->
       <div v-if="editMode" class="modal-overlay" @click="cancelEdit">
         <div class="modal-content" @click.stop>
-          <h2>レコード編集</h2>
+          <div class="modal-header">
+            <h2>レコード編集</h2>
+            <button @click="deleteRecord" class="delete-button">レコード削除</button>
+          </div>
           <div v-if="editData" class="edit-form">
             <div class="form-group">
               <label>トランザクションID:</label>
@@ -116,23 +132,31 @@
 
             <div class="form-group">
               <label>素材タイプ：</label>
-              <input v-model="editData['material_type']" type="text" placeholder="素材タイプを入力">
+              <select v-model="editData['material_type']">
+                <option value="ソリッド">ソリッド</option>
+                <option value="メタリック">メタリック</option>
+                <option value="ソリッド & メタリック">ソリッド & メタリック</option>
+              </select>
             </div>
 
             <div class="form-group">
               <label>色板タイプ:</label>
-              <input v-model="editData['plate_type_input']" type="text" placeholder="例: 基準板, ロット板">
+              <select v-model="editData['plate_type_input']">
+                <option value="基準板">基準板</option>
+                <option value="ロット板">ロット板</option>
+                <option value="基準板 & ロット板">基準板 & ロット板</option>
+              </select>
             </div>
 
             <div class="form-group">
-              <label>設定色 (カンマ区切り):</label>
+              <label>設定色:</label>
               <textarea v-model="editData['chosen_color_input']" @input="toUpperCase('chosen_color_input')" placeholder="複数設定色をカンマ(,)で区切って入力"></textarea>
             </div>
 
             <!-- 親コード入力欄 -->
             <div v-if="editData['new_color_picker']" class="form-group">
               <label>親コード:</label>
-              <input v-model="editData['parent_color']" type="text" placeholder="親コードを入力">
+              <input v-model="editData['parent_color']" type="text" @input="toUpperCase('parent_color')" placeholder="親コードを入力">
             </div>
 
             <!-- 採番ステータス選択欄 -->
@@ -183,7 +207,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { db } from '../firebase';
-import { collection, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -196,6 +220,7 @@ const message = ref('');
 const statusFilter = ref('');
 const requestDateFilter = ref('');
 const colorCodeFilter = ref('');
+const materialTypeFilter = ref(''); // 素材タイプフィルター用の変数を追加
 const plateTypeFilter = ref('');
 const chosenColorFilter = ref('');
 const serviceCentreFilter = ref('');
@@ -233,6 +258,14 @@ async function fetchAllHistory() {
     const snap = await getDocs(collection(db, 'colorboards'));
     const tmp = [];
     snap.forEach(docSnap => tmp.push({ id: docSnap.id, data: docSnap.data() }));
+
+    // 申請日が新しい順に並べ替え
+    tmp.sort((a, b) => {
+      const dateA = a.data["Request Date_CA OtD"]?.toDate() || new Date(0);
+      const dateB = b.data["Request Date_CA OtD"]?.toDate() || new Date(0);
+      return dateB - dateA;
+    });
+
     allTransactions.value = tmp;
     if (tmp.length === 0) {
       errorAll.value = '履歴がありません。';
@@ -283,28 +316,33 @@ const filteredTransactions = computed(() => {
       return false;
     }
 
-    // カラーコードフィルター(部分一致)
-    if (colorCodeFilter.value && !(d["color_code"] || []).join(", ").toLowerCase().includes(colorCodeFilter.value.toLowerCase())) {
+    // カラーコードフィルター(部分一致かつ大文字に変換)
+    if (colorCodeFilter.value && !(d["color_code"] || []).join(", ").toUpperCase().includes(colorCodeFilter.value.toUpperCase())) {
       return false;
     }
 
-    // 色板タイプフィルター(部分一致)
-    if (plateTypeFilter.value && !(d["plate_type"] || '').toLowerCase().includes(plateTypeFilter.value.toLowerCase())) {
+    // 素材タイプフィルター
+    if (materialTypeFilter.value && d["material_type"] !== materialTypeFilter.value) {
       return false;
     }
 
-    // 設定色フィルター(部分一致)
-    if (chosenColorFilter.value && !( (d["chosen_color"] || []).join(", ").toLowerCase().includes(chosenColorFilter.value.toLowerCase()) )) {
+    // 色板タイプフィルター(完全一致)
+    if (plateTypeFilter.value && d["plate_type"] !== plateTypeFilter.value) {
       return false;
     }
 
-    // 親コードフィルター(部分一致)
-    if (parentCodeFilter.value && !(d["parent_color"] || '').toLowerCase().includes(parentCodeFilter.value.toLowerCase())) {
+    // 設定色フィルター(部分一致かつ大文字に変換)
+    if (chosenColorFilter.value && !((d["chosen_color"] || []).join(", ").toUpperCase().includes(chosenColorFilter.value.toUpperCase()))) {
+      return false;
+    }
+
+    // 親コードフィルター(部分一致かつ大文字に変換)
+    if (parentCodeFilter.value && !(d["parent_color"] || '').toUpperCase().includes(parentCodeFilter.value.toUpperCase())) {
       return false;
     }
 
     // 依頼組織フィルター(部分一致)
-    if (serviceCentreFilter.value && !( (d["Service Centre Name"] || '').toLowerCase().includes(serviceCentreFilter.value.toLowerCase()) )) {
+    if (serviceCentreFilter.value && !((d["Service Centre Name"] || '').toUpperCase().includes(serviceCentreFilter.value.toUpperCase()))) {
       return false;
     }
 
@@ -319,12 +357,14 @@ function editRecord(id) {
     const color_code_str = (record.data["color_code"] || []).join(", ");
     const chosen_color_str = (record.data["chosen_color"] || []).join(", ");
     const plate_type_str = record.data["plate_type"] || '';
+    const material_type_str = record.data["material_type"] || '';
 
     editData.value = {
       ...record.data,
       color_code_input: color_code_str,
       chosen_color_input: chosen_color_str,
       plate_type_input: plate_type_str,
+      material_type: material_type_str,
       parent_color: record.data["parent_color"] || '', // 親コードの初期値を設定
       new_color_picker: record.data["new_color_picker"] || false
     };
@@ -354,7 +394,8 @@ async function updateRecord() {
       .map(c => c.trim().toUpperCase()) // 大文字に変換
       .filter(c => c);
     
-    const updatedPlateType = editData.value.plate_type_input.trim();
+    const updatedPlateType = editData.value.plate_type_input;
+    const updatedMaterialType = editData.value.material_type;
 
     let returnDateUpdate = null;
     if (returnDateInput.value) {
@@ -369,7 +410,7 @@ async function updateRecord() {
       "color_code": updatedColorCodes,
       "chosen_color": updatedChosenColors.length > 0 ? updatedChosenColors : null,
       "plate_type": updatedPlateType || null,
-      "material_type": editData.value["material_type"] || null,
+      "material_type": updatedMaterialType || null,
       "Customer Name": editData.value["Customer Name"],
       "Service Centre Name": editData.value["Service Centre Name"],
       "Status": editData.value["Status"],
@@ -393,6 +434,26 @@ async function updateRecord() {
   } catch (err) {
     console.error(err);
     errorAll.value = '更新中にエラーが発生しました。';
+  }
+}
+
+async function deleteRecord() {
+  if (!editDocId) return;
+
+  if (!confirm('本当に削除しますか？')) {
+    return;
+  }
+
+  try {
+    const docRef = doc(db, 'colorboards', editDocId);
+    await deleteDoc(docRef);
+
+    message.value = 'レコードが削除されました。';
+    await fetchAllHistory(); // データを再取得して表示を更新
+    cancelEdit(); // モーダルを閉じる
+  } catch (err) {
+    console.error(err);
+    errorAll.value = '削除中にエラーが発生しました。';
   }
 }
 
@@ -480,7 +541,6 @@ function toUpperCase(field) {
 </script>
 
 <style scoped>
-/* 変更なし(CSSは以前のコードと同じ) */
 .download-icon {
   width: 1.6%;
   height: 1.6%;
@@ -494,7 +554,6 @@ function toUpperCase(field) {
   transform: scale(1.1);
 }
 
-/* そのほかのスタイルは変更なし */
 .container {
   position: relative;
   min-height: 100vh;
@@ -664,7 +723,7 @@ function toUpperCase(field) {
 
 .modal-content {
   background-color: #f8f9fa;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
   width: 400px;
   max-width: 90%;
@@ -676,10 +735,17 @@ function toUpperCase(field) {
   background-size: 20px 20px;
 }
 
-.modal-content h2 {
-  margin-top: 0;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 10px;
+  padding-right: 10px;
+}
+
+.modal-header h2 {
   font-size: 18px;
+  margin: 0;
 }
 
 .edit-form {
@@ -709,7 +775,9 @@ function toUpperCase(field) {
 
 .button-group {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; 
+  align-items: center;
+  gap: 5px;
   margin-top: 10px;
 }
 
@@ -717,7 +785,7 @@ function toUpperCase(field) {
   background-color: #00897b;
   color: #fff;
   border: none;
-  padding: 6px 12px;
+  padding: 2% 8%;
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
@@ -729,10 +797,10 @@ function toUpperCase(field) {
 }
 
 .cancel-button {
-  background-color: #b71c1c;
+  background-color: #df8a0b;
   color: #fff;
   border: none;
-  padding: 6px 12px;
+  padding: 2% 4%;
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
@@ -740,6 +808,21 @@ function toUpperCase(field) {
 }
 
 .cancel-button:hover {
-  background-color: #7f0000;
+  background-color: #bb7102;
+}
+
+.delete-button {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 2% 3%;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
 }
 </style>

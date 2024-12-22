@@ -1,3 +1,4 @@
+<!--ApprovalLoan.vue-->
 <template>
   <div class="approval-loan-container">
     <div class="header">
@@ -23,7 +24,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="tx in loanList" :key="tx.id" @dblclick="openColorModal(tx)">
+          <tr class="record" v-for="tx in loanList" :key="tx.id" @dblclick="openColorModal(tx)">
             <td>{{ tx.data["transaction id"] }}</td>
             <td>{{ formatDate(tx.data["Request Date_CA OtD"]?.toDate()) }}</td>
             <td>{{ tx.data["color_code"] ? tx.data["color_code"].join(", ") : "" }}</td>
@@ -57,33 +58,16 @@
       </div>
     </div>
 
-    <!-- メールテンプレートモーダル -->
-    <div v-if="showEmailModal" class="modal-overlay" @click="closeEmailModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>メールテンプレート</h2>
-          <button class="copy-button" @click="copyTemplateToClipboard">
-            コピー
-          </button>
-        </div>
-        <pre>{{ emailTemplate }}</pre>
-        <div class="button-group">
-          <button @click="closeEmailModal" class="cancel-button">閉じる</button>
-        </div>
-      </div>
-    </div>
-
     <!-- 色登録用モーダル -->
     <div v-if="showColorModal" class="modal-overlay" @click="closeColorModal">
-      <div class="modal-content" @click.stop>
-        <h3>色情報登録</h3>
-        <p>カラーコードをカンマ区切りで登録してください。</p>
-        <div class="color-options">
-          <label for="edit-color-code">カラーコード:</label>
-          <textarea id="edit-color-code" v-model="editColorCode" placeholder="カラーコードをカンマ区切りで入力"></textarea>
+      <div class="modal-content edit-modal" @click.stop>
+        <h3 class="modal-title">色情報登録</h3>
+        <div class="form-group">
+          <label for="edit-color-code">カラーコード</label>
+          <textarea id="edit-color-code" v-model="editColorCode" @input="toUpperCase" placeholder="カラーコードをカンマ区切りで入力"></textarea>
         </div>
-        <div class="plate-type-options">
-          <label for="edit-plate-type">色板タイプ:</label>
+        <div class="form-group">
+          <label for="edit-plate-type">色板タイプ</label>
           <select id="edit-plate-type" v-model="editPlateType">
             <option value="">選択してください</option>
             <option value="基準板">基準板</option>
@@ -92,8 +76,8 @@
           </select>
         </div>
         <div class="modal-buttons">
-          <button @click="saveChosenColors">保存</button>
-          <button @click="closeColorModal">キャンセル</button>
+          <button @click="saveChosenColors" class="save-button">保存</button>
+          <button @click="closeColorModal" class="cancel-button">キャンセル</button>
         </div>
       </div>
     </div>
@@ -103,7 +87,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { db } from '../firebase';
-import { collection, getDocs, doc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -118,9 +102,6 @@ const loanList = ref([]);
 const message = ref('');
 
 const showErrorModal = ref(false);
-const showEmailModal = ref(false);
-const emailTemplate = ref('');
-const approvedTransactionId = ref('');
 const errorMessage = ref('');
 
 const showColorModal = ref(false);
@@ -177,10 +158,6 @@ async function approveLoan(tx) {
     });
     message.value = '承認しました。';
 
-    approvedTransactionId.value = tx.data["transaction id"];
-    const caOtdUsers = await getCAOtDUsers();
-    generateEmailTemplate(tx, caOtdUsers);
-
     await fetchData();
   } catch (err) {
     console.error('Error:', err);
@@ -188,42 +165,8 @@ async function approveLoan(tx) {
   }
 }
 
-async function getCAOtDUsers() {
-  const users = [];
-  try {
-    const q = query(collection(db, "users"), where("role", "==", "CA OtD"));
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc) => {
-      users.push(doc.data().Name);
-    });
-  } catch (err) {
-    console.error("Error getting CA OtD users:", err);
-  }
-  return users;
-}
-
-function generateEmailTemplate(tx, caOtdUsers) {
-  const caOtdNames = caOtdUsers.join("さん、");
-  const colorCodes = tx.data["color_code"] ? tx.data["color_code"].join(", ") : "";
-
-  emailTemplate.value = `
-CA OtD ${caOtdNames}さん
-
-お世話になっております。
-
-${colorCodes}の色板貸し出しの準備が完了いたしました。
-
-よろしくお願いいたします。
-`;
-  showEmailModal.value = true;
-}
-
 function closeErrorModal() {
   showErrorModal.value = false;
-}
-
-function closeEmailModal() {
-  showEmailModal.value = false;
 }
 
 function goBackToDashboard() {
@@ -236,23 +179,6 @@ function formatDate(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
-}
-
-function copyTemplateToClipboard() {
-  navigator.clipboard.writeText(emailTemplate.value)
-    .then(() => {
-      message.value = 'メールテンプレートをコピーしました！'
-      setTimeout(() => {
-        message.value = ''
-      }, 2000)
-    })
-    .catch(err => {
-      console.error('Failed to copy: ', err)
-      error.value = 'コピーに失敗しました。'
-      setTimeout(() => {
-        error.value = ''
-      }, 2000)
-    })
 }
 
 function openColorModal(tx) {
@@ -275,7 +201,7 @@ async function saveChosenColors() {
   try {
     const docRef = doc(db, 'colorboards', currentTx.value.id);
     await updateDoc(docRef, {
-      "color_code": editColorCode.value ? editColorCode.value.split(',').map(code => code.trim()) : [],
+      "color_code": editColorCode.value ? editColorCode.value.split(',').map(code => code.trim().toUpperCase()) : [],
       "plate_type": editPlateType.value
     });
     message.value = 'カラーコードと色板タイプを更新しました。';
@@ -285,6 +211,11 @@ async function saveChosenColors() {
     console.error('Error:', err);
     error.value = 'カラーコードと色板タイプの更新中にエラーが発生しました。';
   }
+}
+
+// この関数を追加
+function toUpperCase() {
+  editColorCode.value = editColorCode.value.toUpperCase();
 }
 </script>
 
@@ -308,6 +239,10 @@ async function saveChosenColors() {
 .header h1 {
   font-size: 24px;
   color: #333;
+}
+
+.record{
+  cursor: pointer;
 }
 
 .transaction-id-column {
@@ -458,105 +393,76 @@ async function saveChosenColors() {
   background-color: #7f0000;
 }
 
-/* メールテンプレートモーダルのヘッダー */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+.modal-content.edit-modal {
+  width: 400px; /* 幅を少し広げる */
 }
 
-/* コピーボタン */
-.copy-button {
-  background-color: #00897b;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-size: 12px;
+.modal-title {
+  font-size: 1.2rem;
   font-weight: bold;
-  cursor: pointer;
-}
-
-.copy-button:hover {
-  background-color: #00796b;
-}
-
-/* メールの件名 */
-.email-subject {
-  margin-bottom: 5px;
-  font-size: 14px;
-}
-
-/* メールテンプレートのスタイル */
-.modal-content pre {
-  white-space: pre-wrap;
-  font-family: 'Roboto', sans-serif;
-  font-size: 14px;
-  color: #333;
   margin-bottom: 20px;
+  color: #333;
 }
 
-/* 編集モーダルのスタイル */
-.modal-content .form-group {
+.form-group {
   margin-bottom: 15px;
 }
 
-.modal-content label {
+.form-group label {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
   text-align: left;
+  color: #555;
 }
 
-.modal-content input[type="text"],
-.modal-content select {
-  width: 90%;
-  padding: 8px;
+.form-group textarea,
+.form-group select {
+  width: 95%; /* 幅を少し広げる */
+  padding: 8px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
+  font-size: 0.9rem;
+  color: #333;
 }
 
-.modal-content .button-group {
+.form-group textarea {
+  min-height: 80px;
+  resize: vertical; /* 垂直方向のみリサイズ可能にする */
+}
+
+.modal-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* ボタンを右端に寄せる */
   margin-top: 20px;
 }
 
-.modal-content .save-button {
-  background-color: #4caf50;
-  color: white;
-  border: none;
+.modal-buttons button {
   padding: 8px 16px;
-  border-radius: 5px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
   cursor: pointer;
-  font-size: 14px;
+  transition: background-color 0.3s;
 }
 
-.modal-content .save-button:hover {
+.modal-buttons .save-button {
+  background-color: #4CAF50;
+  color: white;
+  margin-right: 10px;
+}
+
+.modal-buttons .save-button:hover {
   background-color: #45a049;
 }
 
-.modal-buttons button {
-  margin-top: 10px;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 5px;
-  background-color: #00695c;
+.modal-buttons .cancel-button {
+  background-color: #aaa;
   color: white;
-  cursor: pointer;
 }
 
-.modal-buttons button:hover {
-  background-color: #00796b;
-}
-
-.color-options {
-  margin-bottom: 15px;
-}
-
-.plate-type-options {
-  margin-bottom: 15px;
+.modal-buttons .cancel-button:hover {
+  background-color: #999;
 }
 </style>
