@@ -113,7 +113,7 @@
       </div>
 
       <!-- 編集モーダル -->
-      <div v-if="editMode" class="modal-overlay" @click="cancelEdit">
+      <div v-if="editMode" class="modal-overlay">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
             <h2>レコード編集</h2>
@@ -403,8 +403,12 @@ async function updateRecord() {
       returnDateUpdate = Timestamp.fromDate(new Date(Number(y), Number(m) - 1, Number(d)));
     }
 
+    // chosen_color または parent_color が null でない場合、new_color_picker を false に設定
     // 採番ステータスが「採番完了」なら new_color_picker を false に設定
-    const newColorPickerUpdate = numberingStatus.value === "採番完了" ? false : editData.value["new_color_picker"];
+    let newColorPickerUpdate = editData.value["new_color_picker"];
+    if (updatedChosenColors.length > 0 || editData.value["parent_color"] || numberingStatus.value === "採番完了") {
+      newColorPickerUpdate = false;
+    }
 
     const updates = {
       "color_code": updatedColorCodes,

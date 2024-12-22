@@ -1,4 +1,3 @@
-<!--ChatsCAOtD.vue-->
 <template>
   <div class="container">
     <div class="header">
@@ -81,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue'; // onUnmounted を追加
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, orderBy, Timestamp, updateDoc, getDocs, doc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
@@ -95,10 +94,12 @@ const role = sessionStorage.getItem('role');
 const name = sessionStorage.getItem('name');
 const userId = sessionStorage.getItem('uid');
 
+let unsubscribe = null; // onSnapshot の戻り値を格納する変数
+
 // トランザクションリストを取得
 onMounted(async () => {
   const q = query(collection(db, 'colorboards'), where('Status', '==', false));
-  onSnapshot(q, async (snapshot) => {
+  unsubscribe = onSnapshot(q, async (snapshot) => { // リスナーを登録し、戻り値(解除関数)を unsubscribe に格納
     transactions.value = await Promise.all(
       snapshot.docs.map(async (doc) => {
         const transaction = doc.data();
@@ -123,6 +124,13 @@ onMounted(async () => {
   });
 });
 
+// コンポーネントがアンマウントされたときにリスナーを解除
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe(); // リスナーを解除
+  }
+});
+
 // チャットを開始
 function startChat(transaction) {
   currentTransaction.value = transaction;
@@ -143,7 +151,8 @@ async function markMessagesAsRead(transactionId) {
 
   chatSnapshot.forEach(async (chatDoc) => {
     const chatData = chatDoc.data();
-    if (!chatData.readby || !chatData.readby.includes(userId)) {
+    // ログインユーザーがCA OtDの場合にのみ、readbyを更新
+    if (role === 'CA OtD' && (!chatData.readby || !chatData.readby.includes(userId))) {
       const chatRef = doc(db, `colorboards/${transactionId}/chat`, chatDoc.id);
       await updateDoc(chatRef, {
         readby: chatData.readby ? [...chatData.readby, userId] : [userId],

@@ -5,6 +5,11 @@
       <h1 class="main-title">返却承認</h1>
     </div>
 
+    <!-- ページ説明文 -->
+    <div class="page-description">
+      <p>・特定色の返却→そのまま承認 ・既存色での合意→設定色を選択 ・新規色の作成→新規色採番 　(ダブルクリックで編集)</p>
+    </div>
+
     <div class="content-area">
       <div v-if="loading" class="loading-message">読み込み中...</div>
       <div v-else-if="error" class="error-message">{{ error }}</div>
@@ -53,7 +58,7 @@
     </div>
 
     <!-- 色登録用モーダル -->
-    <div v-if="showColorModal" class="modal-overlay" @click="closeColorModal">
+    <div v-if="showColorModal" class="modal-overlay">
       <div class="modal-content edit-modal" @click.stop>
         <h3 class="modal-title">色情報登録</h3>
         <p class="modal-description">カラーコードを選択または新規色を採番してください。</p>
@@ -326,6 +331,16 @@ body {
   margin: 0;
 }
 
+.page-description {
+  text-align: center;
+  margin-bottom: 0.5%;
+  font-size: 0.9rem;
+  color: #555;
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
 .content-area {
   flex: 1;
   background: #ffffff;
@@ -397,11 +412,14 @@ body {
   background-color: #00695c;
   color: #fff;
   border: none;
-  padding: 6px 12px;
+  padding: 5% 12px;
   border-radius: 4px;
   font-weight: bold;
   cursor: pointer;
   font-size: 12px;
+  width: 50%;
+  display: block;
+  margin: 0 auto;
 }
 
 .approve-button:hover {

@@ -81,24 +81,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue'; // onUnmounted を追加
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, orderBy, Timestamp, updateDoc, getDocs, doc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 
-const transactions = ref([]);
-const currentTransaction = ref(null);
-const chatMessages = ref([]);
-const newMessage = ref('');
 const router = useRouter();
 const role = sessionStorage.getItem('role');
 const name = sessionStorage.getItem('name');
 const userId = sessionStorage.getItem('uid');
 
+const transactions = ref([]);
+const currentTransaction = ref(null);
+const chatMessages = ref([]);
+const newMessage = ref('');
+let unsubscribe = ref(null); // unsubscribe 関数を保持するための ref を追加
+
+if (role !== 'CCR') {
+  router.push('/login');
+}
+
 // トランザクションリストを取得
 onMounted(async () => {
   const q = query(collection(db, 'colorboards'), where('Status', '==', false));
-  onSnapshot(q, async (snapshot) => {
+  // onSnapshot の戻り値を unsubscribe.value に代入
+  unsubscribe.value = onSnapshot(q, async (snapshot) => {
     transactions.value = await Promise.all(
       snapshot.docs.map(async (doc) => {
         const transaction = doc.data();
@@ -106,7 +113,6 @@ onMounted(async () => {
         const chatSnapshot = await getDocs(chatQuery);
 
         let unreadCount = 0;
-
         if (!chatSnapshot.empty) {
           chatSnapshot.forEach(chatDoc => {
             const chatData = chatDoc.data();
@@ -124,6 +130,13 @@ onMounted(async () => {
       })
     );
   });
+});
+
+// コンポーネントがアンマウントされたときにリスナーを解除
+onUnmounted(() => {
+  if (unsubscribe.value) {
+    unsubscribe.value();
+  }
 });
 
 // チャットを開始

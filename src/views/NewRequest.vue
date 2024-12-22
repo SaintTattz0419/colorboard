@@ -2,14 +2,14 @@
   <div class="wrapper">
     <div class="container">
       <h1 class="title">新規申請</h1>
-      <form @submit.prevent="showConfirmation = true">
+      <form v-if="!showSuccessMessage" @submit.prevent="showConfirmation = true">
         <div class="form-group">
           <label>Color Codes：</label>
           <div class="color-input">
             <input
               v-model="newColorCode"
               type="text"
-              placeholder="カラーコードを入力 (大文字英字・数字のみ)"
+              placeholder="カラーコードを入力"
               @input="validateColorCode"
             />
             <button class="add-button" type="button" @click="addColorCode">追加</button>
@@ -21,17 +21,6 @@
             </li>
           </ul>
         </div>
-
-        <!--
-        <div class="form-group">
-          <label>色板タイプ：</label>
-          <select v-model="type_of_plate">
-            <option value="基準板">基準板</option>
-            <option value="ロット板">ロット板</option>
-            <option value="両方">基準板 & ロット板</option>
-          </select>
-        </div>
-        -->
 
         <div class="form-group">
           <label>素材タイプ：</label>
@@ -80,7 +69,6 @@
           <p>以下の内容で新規申請しますか？</p>
           <ul class="confirm-list">
             <li><strong>Color Codes:</strong> {{ colorCodes.join(", ") }}</li>
-            <!--<li><strong>色板タイプ:</strong> {{ type_of_plate }}</li>-->
             <li><strong>素材タイプ:</strong> {{ material_type === "Metallic" ? "メタリック" : "ソリッド" }}</li>
             <li><strong>貸出先CC:</strong> {{ serviceCentreName }}</li>
             <li><strong>CC担当者名:</strong> {{ customerName }}</li>
@@ -111,14 +99,25 @@
         </div>
       </div>
 
-      <div v-if="message" class="success-message">{{ message }}</div>
+      <div v-if="isLoading" class="loading">
+        <p>Loading...</p>
+      </div>
+
+      <div v-if="showSuccessMessage" class="success-message">
+        <p>申請が送信されました。</p>
+        <div class="button-group">
+          <button class="another-request-button" @click="continueApplication">続けて申請</button>
+          <button class="dashboard-button" @click="goBackToDashboard">ダッシュボードに戻る</button>
+        </div>
+      </div>
+
       <div v-if="error" class="error-message">{{ error }}</div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { db } from '../firebase'
 import { collection, addDoc, Timestamp, getDocs, query, where } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
@@ -133,27 +132,22 @@ const customerName = ref('')
 const end_user_company = ref('')
 const returnDateInput = ref('')
 const note = ref('')
-//const type_of_plate = ref('基準板')
 const material_type = ref('Solid')
 const today = new Date()
 const maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 90)
 const maxReturnDate = maxDate.toISOString().split('T')[0]
-const message = ref('')
 const error = ref('')
 const formError = ref('')
 const router = useRouter()
 const showConfirmation = ref(false)
 const showEmailTemplate = ref(false)
 const emailTemplate = ref('')
-const emailSubject = ref('') // メール件名用の ref を追加
+const emailSubject = ref('')
 const loggedInUserName = ref('')
 const ccrUsers = ref([])
-const transactionId = ref('') // トランザクションID用の ref を追加
-
-onMounted(async () => {
-  await fetchLoggedInUserName()
-  await fetchCCRUsers()
-})
+const transactionId = ref('')
+const isLoading = ref(false)
+const showSuccessMessage = ref(false)
 
 async function fetchLoggedInUserName() {
   try {
@@ -214,7 +208,6 @@ function closeEmailTemplateModal() {
 }
 
 async function confirmSend() {
-  // バリデーションチェック
   if (!serviceCentreName.value.trim()) {
     formError.value = 'サービスセンター名を入力してください。'
     closeModal()
@@ -231,13 +224,18 @@ async function confirmSend() {
     return
   }
 
+  isLoading.value = true
+  showConfirmation.value = false
+
+  // 1.5秒の遅延をシミュレート
+  await new Promise(resolve => setTimeout(resolve, 1500))
+
   try {
     const requestDate = new Date()
     const yearYY = String(requestDate.getFullYear()).slice(-2)
-    transactionId.value = generateTransactionId(yearYY) // トランザクションIDを生成
+    transactionId.value = generateTransactionId(yearYY)
     const chosenDate = new Date(returnDateInput.value)
 
-    // Firestore にデータを追加
     await addDoc(collection(db, 'colorboards'), {
       "Approved Date_CCR": null,
       "color_code": colorCodes.value,
@@ -246,23 +244,19 @@ async function confirmSend() {
       "Return Date": Timestamp.fromDate(chosenDate),
       "Service Centre Name": serviceCentreName.value,
       "Status": false,
-      "transaction id": transactionId.value, // 生成したトランザクションIDを登録
+      "transaction id": transactionId.value,
       "CA OtD Name": name,
       "Actual Return Date": null,
       "Return Check_CCR": null,
       "note": note.value || null,
-      //"plate_type": type_of_plate.value,
-      "material_type": material_type.value === "Solid" ? "ソリッド" : "メタリック", // ★★★ ここで変換 ★★★
+      "material_type": material_type.value === "Solid" ? "ソリッド" : "メタリック",
       "end_user_company": end_user_company.value || null,
-      "new_color_picker": false // new_color_picker フィールドを追加し、false を設定
+      "new_color_picker": false
     })
 
-    message.value = '申請が送信されました。'
-
-    // メールテンプレートの作成と表示 (colorCodes が存在する場合のみ)
     if (colorCodes.value.length > 0) {
       const ccrUsersStr = ccrUsers.value.join('さん、')
-      emailSubject.value = `${transactionId.value}の件` // トランザクションIDを件名に含める
+      emailSubject.value = `${transactionId.value}の件`
       emailTemplate.value = `
 CCR
 ${ccrUsersStr}さん
@@ -280,12 +274,14 @@ ${loggedInUserName.value}
       showEmailTemplate.value = true
     }
 
+    showSuccessMessage.value = true
     resetForm()
   } catch (err) {
     console.error(err)
     error.value = '申請送信中にエラーが発生しました。'
+  } finally {
+    isLoading.value = false
   }
-  closeModal()
 }
 
 function resetForm() {
@@ -294,7 +290,6 @@ function resetForm() {
   customerName.value = ''
   returnDateInput.value = ''
   note.value = ''
-  //type_of_plate.value = '基準板'
   material_type.value = 'Solid'
   end_user_company.value = ''
 }
@@ -307,9 +302,9 @@ function copyTemplateToClipboard() {
   const textToCopy = `件名: ${emailSubject.value}\n\n${emailTemplate.value}`
   navigator.clipboard.writeText(textToCopy)
     .then(() => {
-      message.value = 'メールテンプレートをコピーしました！'
+      error.value = 'メールテンプレートをコピーしました！'
       setTimeout(() => {
-        message.value = ''
+        error.value = ''
       }, 2000)
     })
     .catch(err => {
@@ -320,9 +315,17 @@ function copyTemplateToClipboard() {
       }, 2000)
     })
 }
+
+function continueApplication() {
+  showSuccessMessage.value = false
+}
+
+fetchLoggedInUserName()
+fetchCCRUsers()
 </script>
 
 <style scoped>
+/* 以前のスタイルから変更なし */
 html, body {
   height: 100%;
   margin: 0;
@@ -349,6 +352,10 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin-top: 1.2%; /* トップに少し余白 */
+  /* フォームを中央に配置するためのスタイルを追加 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .title {
@@ -361,9 +368,16 @@ body {
   margin-top: -2%;
 }
 
+/* フォームのスタイル */
+form {
+  width: 60%; /* フォームの幅を設定 */
+  margin: 0 auto; /* 水平方向に中央揃え */
+}
+
 /* 各フォームグループのスタイル */
 .form-group {
   margin-bottom: 15px;
+  text-align: center; /* labelなどを中央寄せにする */
 }
 
 .form-group label {
@@ -371,6 +385,7 @@ body {
   font-weight: bold;
   margin-bottom: 3px;
   color: #333;
+  text-align: left;
 }
 
 .add-button{
@@ -386,17 +401,31 @@ body {
 }
 
 .added-color-code{
-  width: 40%;
+  width: 100%;
+}
+
+.another-request-button {
+  padding: 3% 15px;
+  font-size: large;
+  font-weight: bold;
+  background-color: #db1557;
+  color: white;
+  cursor: pointer;
+}
+
+.another-request-button:hover{
+  background-color: #fa6395 ;
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
-  width: 60%;
+  width: 100%;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
+  box-sizing: border-box; /* widthにpaddingとborderを含める */
 }
 
 textarea {
@@ -419,7 +448,7 @@ button[type="submit"]:hover {
 
 /* カラーコードの入力 */
 .color-input {
-  width: 65%;
+  width: 90%;
   display: flex;
   gap: 10px;
 }
@@ -475,6 +504,7 @@ ul li button:hover {
   display: flex;
   gap: 10px;
   margin-top: 20px;
+  justify-content: flex-end; /* ボタンを右端に寄せる */
 }
 
 /* ダッシュボードへ戻るボタン（申請ボタンの隣） */
@@ -611,5 +641,12 @@ ul li button:hover {
   font-size: 14px;
   color: #333;
   margin-bottom: 20px;
+}
+
+/* ローディング表示のスタイル */
+.loading {
+  text-align: center;
+  margin-top: 20px;
+  font-weight: bold;
 }
 </style>
