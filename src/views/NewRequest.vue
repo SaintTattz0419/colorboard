@@ -12,9 +12,9 @@
               placeholder="カラーコードを入力 (大文字英字・数字のみ)"
               @input="validateColorCode"
             />
-            <button type="button" @click="addColorCode">追加</button>
+            <button class="add-button" type="button" @click="addColorCode">追加</button>
           </div>
-          <ul>
+          <ul class="added-color-code">
             <li v-for="(code, index) in colorCodes" :key="index">
               {{ code }}
               <button type="button" @click="removeColorCode(index)">削除</button>
@@ -252,7 +252,7 @@ async function confirmSend() {
       "Return Check_CCR": null,
       "note": note.value || null,
       //"plate_type": type_of_plate.value,
-      "material_type": material_type.value,
+      "material_type": material_type.value === "Solid" ? "ソリッド" : "メタリック", // ★★★ ここで変換 ★★★
       "end_user_company": end_user_company.value || null,
       "new_color_picker": false // new_color_picker フィールドを追加し、false を設定
     })
@@ -373,10 +373,26 @@ body {
   color: #333;
 }
 
+.add-button{
+  background-color: #3b2ad3;
+  color: #e3f2fd;
+  cursor: pointer;
+  padding-left: 4%;
+  padding-right: 4%;
+}
+
+.add-button:hover{
+  background-color: #284fb9;
+}
+
+.added-color-code{
+  width: 40%;
+}
+
 .form-group input,
 .form-group textarea,
 .form-group select {
-  width: 70%;
+  width: 60%;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -403,6 +419,7 @@ button[type="submit"]:hover {
 
 /* カラーコードの入力 */
 .color-input {
+  width: 65%;
   display: flex;
   gap: 10px;
 }
@@ -420,16 +437,17 @@ ul li {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 5px;
+  padding: 2px;
   background-color: #e3f2fd;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   border-radius: 4px;
 }
 
 ul li button {
   background-color: #d93054;
-  padding: 5px 10px;
+  padding: 2px 10px;
   font-size: 12px;
+  color: #fff;
 }
 
 ul li button:hover {
@@ -469,6 +487,7 @@ ul li button:hover {
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  margin-left: auto;
 }
 
 .dashboard-button:hover {

@@ -54,22 +54,32 @@
 
     <!-- 色登録用モーダル -->
     <div v-if="showColorModal" class="modal-overlay" @click="closeColorModal">
-      <div class="modal-content" @click.stop>
-        <h3>色登録</h3>
-        <p>カラーコードを選択または新規色を採番してください。</p>
+      <div class="modal-content edit-modal" @click.stop>
+        <h3 class="modal-title">色情報登録</h3>
+        <p class="modal-description">カラーコードを選択または新規色を採番してください。</p>
         <div class="color-options">
           <div v-for="c in currentColorOptions" :key="c" class="color-option">
-            <input type="checkbox" :value="c" :id="'color-' + c" v-model="tempChosenColors" :disabled="isNewColorChecked"/>
-            <label :for="'color-' + c">{{ c }}</label>
+            <button
+              type="button"
+              :class="{ 'color-button': true, 'selected': tempChosenColors.includes(c) }"
+              @click="toggleColorSelection(c)"
+            >
+              {{ c }}
+            </button>
           </div>
           <div class="color-option">
-            <input type="checkbox" id="new-color-picker" v-model="isNewColorChecked" @change="handleNewColorChange">
-            <label for="new-color-picker">新規色採番</label>
+            <button
+              type="button"
+              :class="{ 'color-button': true, 'new-color': true, 'selected': isNewColorChecked }"
+              @click="toggleNewColor"
+            >
+              新規色採番
+            </button>
           </div>
         </div>
         <div class="modal-buttons">
-          <button @click="saveChosenColors">保存</button>
-          <button @click="closeColorModal">キャンセル</button>
+          <button @click="saveChosenColors" class="save-button">保存</button>
+          <button @click="closeColorModal" class="cancel-button">キャンセル</button>
         </div>
       </div>
     </div>
@@ -206,7 +216,20 @@ function closeColorModal() {
   isNewColorChecked.value = false;
 }
 
-function handleNewColorChange() {
+function toggleColorSelection(color) {
+  if (isNewColorChecked.value) {
+    // 「新規色採番」が選択されている場合、他の色の選択を無視
+    return;
+  }
+  if (tempChosenColors.value.includes(color)) {
+    tempChosenColors.value = tempChosenColors.value.filter(c => c !== color);
+  } else {
+    tempChosenColors.value.push(color);
+  }
+}
+
+function toggleNewColor() {
+  isNewColorChecked.value = !isNewColorChecked.value;
   if (isNewColorChecked.value) {
     tempChosenColors.value = []; // 他の色の選択をクリア
   }
@@ -402,7 +425,6 @@ body {
 .modal-content {
   background-color: #fefefe;
   margin: auto;
-  padding: 20px;
   border: 1px solid #888;
   width: 80%;
   max-width: 500px;
@@ -410,48 +432,104 @@ body {
   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
 }
 
-.modal-content h3 {
-  margin-top: 0;
+.modal-content.edit-modal {
+  width: 400px;
+  padding: 20px 25px;
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.modal-description {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 20px;
 }
 
 .color-options {
-  margin-bottom: 15px;
-  text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .color-option {
-  margin-right: 10px;
+  flex: 1 0 48%; /* 2列にする */
+  box-sizing: border-box;
+}
+
+.color-button {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.color-button:hover {
+  background-color: #eee;
+}
+
+.color-button.selected {
+  background-color: #00695c;
+  color: #fff;
+  border-color: #00695c;
+}
+
+.color-button.new-color {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.color-button.new-color:hover {
+  background-color: #e0e0e0;
+}
+
+.color-button.new-color.selected {
+  background-color: #4CAF50; /* 新規色採番が選択された時の色 */
+  color: #fff;
+  border-color: #4CAF50;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
 }
 
 .modal-buttons button {
-  margin-top: 10px;
-  padding: 5px 10px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 5px;
-  background-color: #00695c;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.modal-buttons .save-button {
+  background-color: #4CAF50;
   color: white;
-  cursor: pointer;
 }
 
-.modal-buttons button:hover {
-  background-color: #00796b;
+.modal-buttons .save-button:hover {
+  background-color: #45a049;
 }
 
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
+.modal-buttons .cancel-button {
+  background-color: #aaa;
+  color: white;
 }
 
-.close:hover,
-.close:focus {
-  color: black;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.color-cell {
-  cursor: pointer;
+.modal-buttons .cancel-button:hover {
+  background-color: #999;
 }
 </style>
