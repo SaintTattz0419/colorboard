@@ -7,7 +7,14 @@
       <button @click="goNewRequest" class="dashboard-button">新規申請</button>
       <!--<button @click="goReturnRequest" class="dashboard-button">返却</button>-->
       <button @click="goAllRecords" class="dashboard-button">全履歴</button>
-      <button @click="openChat" class="dashboard-button">チャット</button>
+      <button @click="openChat" class="dashboard-button">
+        チャット
+        <span v-if="chatLoading" class="loading-count">(...)</span>
+        <span v-else-if="chatError" class="error-count">(エラー)</span>
+        <span v-else>
+          <span style="color: white;">(</span><span :style="{ color: 'yellow' }">{{ unreadChatCount }}</span><span style="color: white;">)</span>
+        </span>
+      </button>
     </div>
     <DeadlineCAOtD />
   </div>
@@ -16,9 +23,59 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import DeadlineCAOtD from '../components/DeadlineCAOtD.vue';
-
+import { ref, onMounted, provide, computed } from 'vue';
+import { db } from '../firebase';
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 
 const router = useRouter();
+const chatLoading = ref(true);
+const chatError = ref('');
+const unreadChatCount = ref(0); // 初期値は0
+const userId = ref(sessionStorage.getItem('uid'));
+
+onMounted(async () => {
+  await fetchUnreadChatCount();
+});
+
+async function fetchUnreadChatCount() {
+  chatLoading.value = true;
+  chatError.value = '';
+  unreadChatCount.value = 0; // 初期化
+
+  try {
+    const q = query(collection(db, 'colorboards'), where('Status', '==', false));
+    onSnapshot(q, async (snapshot) => {
+      let totalUnreadCount = 0;
+
+      for (const doc of snapshot.docs) {
+        const transaction = doc.data();
+        const chatQuery = query(collection(db, `colorboards/${doc.id}/chat`));
+        const chatSnapshot = await getDocs(chatQuery);
+
+        let unreadCount = 0;
+        if (!chatSnapshot.empty) {
+          chatSnapshot.forEach(chatDoc => {
+            const chatData = chatDoc.data();
+            if (!chatData.readby || !chatData.readby.includes(userId.value)) {
+              unreadCount++;
+            }
+          });
+        }
+        totalUnreadCount += unreadCount;
+      }
+
+      unreadChatCount.value = totalUnreadCount;
+      chatLoading.value = false;
+    });
+  } catch (err) {
+    console.error('Error fetching unread chat count:', err);
+    chatError.value = '未読件数の取得中にエラーが発生しました。';
+    chatLoading.value = false;
+  }
+}
+
+// 未読件数を子コンポーネントに提供
+provide('unreadChatCount', unreadChatCount);
 
 function goNewRequest() {
   router.push('/requests/new');
@@ -37,7 +94,7 @@ function openChat() {
 }
 </script>
 
-<style>
+<style scoped>
 /* 全体の背景 */
 body {
   margin: 0;
@@ -97,5 +154,10 @@ body {
 .dashboard-button:active {
   transform: translateY(0);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loading-count, .error-count {
+  color: #666;
+  font-size: 0.8em;
 }
 </style>

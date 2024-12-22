@@ -67,8 +67,8 @@
             <th class="plate-type-column">色板タイプ</th>
             <th class="parent-code-column">親コード</th>
             <th class="chosen-color-column">設定色</th>
-            <th>CC担当者名</th>
             <th>貸出先CC</th>
+            <th>CC担当者名</th>
             <th class="end-user-company-column">顧客会社名</th>
             <th>返却予定日</th>
             <th>返却日</th>
@@ -84,8 +84,8 @@
             <td>{{ tx.data["plate_type"] || "" }}</td>
             <td>{{ tx.data["parent_color"] }}</td>
             <td>{{ tx.data["chosen_color"] ? tx.data["chosen_color"].join(", ") : "" }}</td>
-            <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["Service Centre Name"] }}</td>
+            <td>{{ tx.data["Customer Name"] }}</td>
             <td>{{ tx.data["end_user_company"] }}</td>
             <td>{{ formatDate(tx.data["Return Date"]?.toDate()) }}</td>
             <td>{{ formatDate(tx.data["Actual Return Date"]?.toDate()) }}</td>

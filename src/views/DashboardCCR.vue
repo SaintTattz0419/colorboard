@@ -6,8 +6,8 @@
     <div class="dashboard-buttons">
       <button @click="goApprovalLoan" class="dashboard-button">
         貸出承認
-        <span v-if="loading" class="loading-count">(...)</span>
-        <span v-else-if="error" class="error-count">(エラー)</span>
+        <span v-if="loanLoading" class="loading-count">(...)</span>
+        <span v-else-if="loanError" class="error-count">(エラー)</span>
         <span v-else>
           <span style="color: white;">(</span><span :style="{ color: 'yellow' }">{{ approvalLoanCount }}</span><span style="color: white;">)</span>
         </span>
@@ -21,7 +21,14 @@
         </span>
       </button>
       <button @click="goAllRecords" class="dashboard-button">全履歴</button>
-      <button @click="goChats" class="dashboard-button">チャット</button>
+      <button @click="goChats" class="dashboard-button">
+        チャット
+        <span v-if="chatLoading" class="loading-count">(...)</span>
+        <span v-else-if="chatError" class="error-count">(エラー)</span>
+        <span v-else>
+          <span style="color: white;">(</span><span :style="{ color: 'yellow' }">{{ unreadChatCount }}</span><span style="color: white;">)</span>
+        </span>
+      </button>
     </div>
     <DeadlineCCR />
   </div>
@@ -32,67 +39,111 @@ import { useRouter } from 'vue-router';
 import DeadlineCCR from '../components/DeadlineCCR.vue';
 import { ref, onMounted, provide, computed } from 'vue';
 import { db } from '../firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 
 const router = useRouter();
-const loading = ref(true);
-const error = ref('');
+const loading = ref(true); // 全体ローディング
+const error = ref(''); // 全体エラー
+
+const loanLoading = ref(false);
+const loanError = ref('');
 const loanData = ref([]);
-const returnLoading = ref(true);
+
+const returnLoading = ref(false);
 const returnError = ref('');
 const returnData = ref([]);
 
+const chatLoading = ref(false);
+const chatError = ref('');
+const unreadChatCount = ref(0); // 初期値は0
+const userId = ref(sessionStorage.getItem('uid'));
+
 onMounted(async () => {
-  await fetchData();
-  await fetchReturnData();
+  await fetchData(); // データ取得はonMounted時にまとめる
 });
 
 async function fetchData() {
-  loading.value = true;
+  loading.value = true; // ローディング状態にする
   error.value = '';
   loanData.value = [];
-
-  try {
-    const snap = await getDocs(collection(db, 'colorboards'));
-    const tmp = [];
-    snap.forEach((docSnap) => {
-      const d = docSnap.data();
-      if (d['Request Date_CA OtD'] && d['Approved Date_CCR'] === null) {
-        tmp.push({ id: docSnap.id, data: d });
-      }
-    });
-    loanData.value = tmp;
-  } catch (err) {
-    console.error('Error:', err);
-    error.value = 'データ取得中にエラーが発生しました。';
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function fetchReturnData() {
-  returnLoading.value = true;
-  returnError.value = '';
   returnData.value = [];
 
+  // 貸出承認用データ取得
+  loanLoading.value = true;
+  loanError.value = '';
   try {
-    // クエリを使って条件に合致するドキュメントを取得
-    const q = query(
+    const loanQuery = query(
+      collection(db, 'colorboards'),
+      where('Request Date_CA OtD', '!=', null),
+      where('Approved Date_CCR', '==', null)
+    );
+    const loanSnap = await getDocs(loanQuery);
+    loanData.value = loanSnap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+  } catch (err) {
+    console.error('Error fetching loan data:', err);
+    loanError.value = '貸出承認データの取得中にエラーが発生しました。';
+  } finally {
+    loanLoading.value = false;
+  }
+
+  // 返却承認用データ取得
+  returnLoading.value = true;
+  returnError.value = '';
+  try {
+    const returnQuery = query(
       collection(db, 'colorboards'),
       where('Status', '==', false),
       where('Approved Date_CCR', '!=', null)
     );
-    const snap = await getDocs(q);
-    const tmp = [];
-    snap.forEach((docSnap) => {
-      tmp.push({ id: docSnap.id, data: docSnap.data() });
-    });
-    returnData.value = tmp;
+    const returnSnap = await getDocs(returnQuery);
+    returnData.value = returnSnap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
   } catch (err) {
-    console.error('Error:', err);
-    returnError.value = 'データ取得中にエラーが発生しました。';
+    console.error('Error fetching return data:', err);
+    returnError.value = '返却承認データの取得中にエラーが発生しました。';
   } finally {
     returnLoading.value = false;
+  }
+
+  // 未読チャット件数取得
+  await fetchUnreadChatCount();
+
+  loading.value = false;
+}
+
+async function fetchUnreadChatCount() {
+  chatLoading.value = true;
+  chatError.value = '';
+  unreadChatCount.value = 0; // 初期化
+
+  try {
+      const q = query(collection(db, 'colorboards'), where('Status', '==', false));
+      onSnapshot(q, async (snapshot) => { //リアルタイム検知に変更
+          let totalUnreadCount = 0;
+
+          for (const doc of snapshot.docs) {
+              const transaction = doc.data();
+              const chatQuery = query(collection(db, `colorboards/${doc.id}/chat`));
+              const chatSnapshot = await getDocs(chatQuery);
+
+              let unreadCount = 0;
+              if (!chatSnapshot.empty) {
+                  chatSnapshot.forEach(chatDoc => {
+                      const chatData = chatDoc.data();
+                      if (!chatData.readby || !chatData.readby.includes(userId.value)) {
+                          unreadCount++;
+                      }
+                  });
+              }
+              totalUnreadCount += unreadCount;
+          }
+
+          unreadChatCount.value = totalUnreadCount;
+          chatLoading.value = false;
+      });
+  } catch (err) {
+      console.error('Error fetching unread chat count:', err);
+      chatError.value = '未読件数の取得中にエラーが発生しました。';
+      chatLoading.value = false;
   }
 }
 
@@ -106,7 +157,7 @@ const approvalReturnCount = computed(() => {
   return returnData.value.length;
 });
 
-// データを子コンポーネントに提供 (必要に応じて)
+// データを子コンポーネントに提供
 provide('loanData', loanData);
 provide('returnData', returnData);
 
@@ -133,7 +184,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(to bottom, #f5f7fa, #c3cfe2);
+  background: linear-gradient(to bottom,#fcfbfb , #d1d0d0); /*#f5faf5,v#c3cfe2 */
   min-height: 100vh;
 }
 

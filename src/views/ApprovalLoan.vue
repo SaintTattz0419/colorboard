@@ -1,9 +1,14 @@
-<!--ApprovalLoan.vue-->
 <template>
   <div class="approval-loan-container">
     <div class="header">
       <h1>貸出承認</h1>
       <button @click="goBackToDashboard" class="back-button">ダッシュボードへ戻る</button>
+    </div>
+
+    <!-- カラーコード未入力と色板タイプ未選択の件数を表示 -->
+    <div class="info-message">
+      カラーコード未入力 <span style="color: red; font-size: large;">{{ colorCodeNotEnteredCount }}</span>件　
+      色板タイプ未選択 <span style="color: red; font-size: large;">{{ plateTypeNotSelectedCount }}</span>件
     </div>
 
     <div v-if="loading" class="loading">読み込み中...</div>
@@ -48,7 +53,7 @@
     <div v-if="message" class="success-message">{{ message }}</div>
 
     <!-- エラーモーダル -->
-    <div v-if="showErrorModal" class="modal-overlay" @click="closeErrorModal">
+    <div v-if="showErrorModal" class="modal-overlay">
       <div class="modal-content" @click.stop>
         <h2>エラー</h2>
         <p v-if="errorMessage">{{ errorMessage }}</p>
@@ -59,7 +64,7 @@
     </div>
 
     <!-- 色登録用モーダル -->
-    <div v-if="showColorModal" class="modal-overlay" @click="closeColorModal">
+    <div v-if="showColorModal" class="modal-overlay">
       <div class="modal-content edit-modal" @click.stop>
         <h3 class="modal-title">色情報登録</h3>
         <div class="form-group">
@@ -85,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { db } from '../firebase';
 import { collection, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
@@ -108,6 +113,16 @@ const showColorModal = ref(false);
 const currentTx = ref(null);
 const editColorCode = ref('');
 const editPlateType = ref('');
+
+// カラーコード未入力の件数
+const colorCodeNotEnteredCount = computed(() => {
+  return loanList.value.filter(tx => !tx.data["color_code"] || tx.data["color_code"].length === 0).length;
+});
+
+// 色板タイプ未選択の件数
+const plateTypeNotSelectedCount = computed(() => {
+  return loanList.value.filter(tx => !tx.data["plate_type"]).length;
+});
 
 onMounted(fetchData);
 
@@ -220,8 +235,15 @@ function toUpperCase() {
 </script>
 
 <style scoped>
+/* 未入力件数表示用のスタイル */
+.info-message {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
 .approval-loan-container {
-  width: 75%;
+  width: 80%;
   margin: 0 auto;
   padding: 20px;
   background: #ffffff;
@@ -416,7 +438,21 @@ function toUpperCase() {
   color: #555;
 }
 
-.form-group textarea,
+/* カラーコード編集のテキストエリアのスタイルを調整 */
+.form-group textarea#edit-color-code {
+  width: 95%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  color: #333;
+  min-height: auto; /* 高さを自動調整 */
+  height: 1%; /* 1行分の高さを設定 */
+  line-height: 1.0; /* 行間を調整 */
+  resize: none; /* リサイズ不可にする */
+}
+
 .form-group select {
   width: 95%; /* 幅を少し広げる */
   padding: 8px 12px;
@@ -427,30 +463,19 @@ function toUpperCase() {
   color: #333;
 }
 
-.form-group textarea {
-  min-height: 80px;
-  resize: vertical; /* 垂直方向のみリサイズ可能にする */
-}
-
 .modal-buttons {
   display: flex;
-  justify-content: flex-end; /* ボタンを右端に寄せる */
+  justify-content: space-between; /* ボタンを右端に寄せる */
   margin-top: 20px;
 }
 
-.modal-buttons button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
+/* 保存ボタンのスタイルを調整 */
 .modal-buttons .save-button {
-  background-color: #4CAF50;
+  background-color: #0c9110;
   color: white;
   margin-right: 10px;
+  width: 25%;
+  cursor: pointer;
 }
 
 .modal-buttons .save-button:hover {
