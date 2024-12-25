@@ -82,6 +82,17 @@
             </button>
           </div>
         </div>
+        <!-- トランザクション保留のラジオボタン -->
+        <div class="radio-option">
+          <input type="radio" id="holdTransaction" v-model="holdTransaction" :value="true">
+          <label for="holdTransaction">トランザクションを保留</label>
+        </div>
+
+        <!-- コメント入力欄 -->
+        <div v-if="holdTransaction" class="comment-input">
+          <label for="comment">コメント (必須):</label>
+          <textarea id="comment" v-model="comment" required></textarea>
+        </div>
         <div class="modal-buttons">
           <button @click="saveChosenColors" class="save-button">保存</button>
           <button @click="closeColorModal" class="cancel-button">キャンセル</button>
@@ -112,6 +123,8 @@ const currentTxId = ref('');
 const currentColorOptions = ref([]);
 const tempChosenColors = ref([]);
 const isNewColorChecked = ref(false); // 新規色採番のチェック状態
+const holdTransaction = ref(false); // トランザクションを保留のラジオボタン
+const comment = ref(''); // コメント入力欄
 
 onMounted(fetchData)
 
@@ -170,6 +183,11 @@ async function approveReturn(id) {
       updates["new_color_picker"] = true;
     }
 
+    // トランザクション保留が選択されている場合、on_hold を true に設定
+    if (holdTransaction.value) {
+      updates["on_hold"] = true;
+    }
+
     // setDoc を merge: true オプション付きで使用
     await setDoc(docRef, updates, { merge: true });
 
@@ -210,6 +228,9 @@ function openColorModal(id, data) {
   tempChosenColors.value = data.chosen_color || [];
   // 既存のドキュメントに new_color_pick フィールドが存在し、その値が true の場合、チェックボックスをオンにする
   isNewColorChecked.value = !!data.new_color_picker;
+  // トランザクション保留とコメント欄の初期化
+  holdTransaction.value = false;
+  comment.value = '';
   showColorModal.value = true;
 }
 
@@ -219,6 +240,8 @@ function closeColorModal() {
   currentColorOptions.value = [];
   tempChosenColors.value = [];
   isNewColorChecked.value = false;
+  holdTransaction.value = false;
+  comment.value = '';
 }
 
 function toggleColorSelection(color) {
@@ -241,18 +264,31 @@ function toggleNewColor() {
 }
 
 async function saveChosenColors() {
+  // トランザクション保留が選択されている場合、コメントが入力されているか確認
+  if (holdTransaction.value && !comment.value.trim()) {
+    error.value = 'コメントを入力してください。';
+    return;
+  }
+
   try {
     const docRef = doc(db, 'colorboards', currentTxId.value);
-    // chosen_color と new_color_picker の両方を更新
-    await updateDoc(docRef, {
+    const updates = {
       chosen_color: tempChosenColors.value,
-      new_color_picker: isNewColorChecked.value // 「新規色採番」の選択状態を保存
-    });
-    message.value = '設定色を保存しました。';
+      new_color_picker: isNewColorChecked.value,
+      on_hold: holdTransaction.value // トランザクション保留の状態を保存
+    };
+
+    // トランザクション保留が選択されている場合、コメントをnoteフィールドに保存
+    if (holdTransaction.value) {
+      updates["note"] = comment.value;
+    }
+
+    await updateDoc(docRef, updates);
+    message.value = '設定を保存しました。';
     await fetchData(); // テーブルを再読み込み
   } catch (err) {
     console.error(err);
-    error.value = '色情報の保存中にエラーが発生しました。';
+    error.value = '設定の保存中にエラーが発生しました。';
   }
   closeColorModal();
 }
@@ -489,7 +525,7 @@ body {
   color: #333;
   cursor: pointer;
   transition: background-color 0.3s, color 0.3s;
-  text-align: center;
+  text-align: center; /* ← ここにセミコロンを追加 */
   font-size: 0.9rem;
 }
 
@@ -549,5 +585,35 @@ body {
 
 .modal-buttons .cancel-button:hover {
   background-color: #999;
+}
+
+.radio-option {
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+.radio-option label {
+  margin-left: 5px;
+  font-size: 0.9rem;
+}
+
+.comment-input {
+  margin-top: 10px;
+}
+
+.comment-input label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.comment-input textarea {
+  width: 90%;
+  height: 80px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  font-size: 0.9rem;
 }
 </style>

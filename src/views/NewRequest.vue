@@ -27,6 +27,8 @@
           <select v-model="material_type">
             <option value="Solid">ソリッド</option>
             <option value="Metallic">メタリック</option>
+            <option value="Pearl">パール</option>
+            <option value="Clear">クリア</option>
           </select>
         </div>
 
@@ -69,7 +71,18 @@
           <p>以下の内容で新規申請しますか？</p>
           <ul class="confirm-list">
             <li><strong>Color Codes:</strong> {{ colorCodes.join(", ") }}</li>
-            <li><strong>素材タイプ:</strong> {{ material_type === "Metallic" ? "メタリック" : "ソリッド" }}</li>
+            <li>
+              <strong>素材タイプ:</strong>
+              {{
+                material_type === "Metallic"
+                  ? "メタリック"
+                  : material_type === "Pearl"
+                  ? "パール"
+                  : material_type === "Clear"
+                  ? "クリア"
+                  : "ソリッド"
+              }}
+            </li>
             <li><strong>貸出先CC:</strong> {{ serviceCentreName }}</li>
             <li><strong>CC担当者名:</strong> {{ customerName }}</li>
             <li><strong>顧客会社名:</strong> {{ end_user_company }}</li>
@@ -232,11 +245,30 @@ async function confirmSend() {
 
   try {
     const requestDate = new Date()
-    const yearYY = String(requestDate.getFullYear()).slice(-2)
-    transactionId.value = generateTransactionId(yearYY)
-    const chosenDate = new Date(returnDateInput.value)
+    const yearYY = String(requestDate.getFullYear()).slice(-2);
+    transactionId.value = generateTransactionId(yearYY);
+    const chosenDate = new Date(returnDateInput.value);
 
-    await addDoc(collection(db, 'colorboards'), {
+    // material_typeの値を日本語に変換
+    let materialTypeJapanese;
+    switch (material_type.value) {
+      case "Solid":
+        materialTypeJapanese = "ソリッド";
+        break;
+      case "Metallic":
+        materialTypeJapanese = "メタリック";
+        break;
+      case "Pearl":
+        materialTypeJapanese = "パール";
+        break;
+      case "Clear":
+        materialTypeJapanese = "クリア";
+        break;
+      default:
+        materialTypeJapanese = "ソリッド"; // デフォルト値を設定
+    }
+
+    await addDoc(collection(db, "colorboards"), {
       "Approved Date_CCR": null,
       "color_code": colorCodes.value,
       "Customer Name": customerName.value,
@@ -249,14 +281,14 @@ async function confirmSend() {
       "Actual Return Date": null,
       "Return Check_CCR": null,
       "note": note.value || null,
-      "material_type": material_type.value === "Solid" ? "ソリッド" : "メタリック",
+      "material_type": materialTypeJapanese, // 日本語に変換した値を保存
       "end_user_company": end_user_company.value || null,
       "new_color_picker": false
-    })
+    });
 
     if (colorCodes.value.length > 0) {
-      const ccrUsersStr = ccrUsers.value.join('さん、')
-      emailSubject.value = `${transactionId.value}の件`
+      const ccrUsersStr = ccrUsers.value.join('さん、');
+      emailSubject.value = `${transactionId.value}の件`;
       emailTemplate.value = `
 CCR
 ${ccrUsersStr}さん
@@ -270,58 +302,58 @@ ${serviceCentreName.value}_${customerName.value}さんより"${colorCodes.value.
 
 CA OtD
 ${loggedInUserName.value}
-      `
-      showEmailTemplate.value = true
+      `;
+      showEmailTemplate.value = true;
     }
 
-    showSuccessMessage.value = true
-    resetForm()
+    showSuccessMessage.value = true;
+    resetForm();
   } catch (err) {
-    console.error(err)
-    error.value = '申請送信中にエラーが発生しました。'
+    console.error(err);
+    error.value = '申請送信中にエラーが発生しました。';
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
 }
 
 function resetForm() {
-  colorCodes.value = []
-  serviceCentreName.value = ''
-  customerName.value = ''
-  returnDateInput.value = ''
-  note.value = ''
-  material_type.value = 'Solid'
-  end_user_company.value = ''
+  colorCodes.value = [];
+  serviceCentreName.value = '';
+  customerName.value = '';
+  returnDateInput.value = '';
+  note.value = '';
+  material_type.value = 'Solid';
+  end_user_company.value = '';
 }
 
 function goBackToDashboard() {
-  router.push('/')
+  router.push('/');
 }
 
 function copyTemplateToClipboard() {
-  const textToCopy = `件名: ${emailSubject.value}\n\n${emailTemplate.value}`
+  const textToCopy = `件名: ${emailSubject.value}\n\n${emailTemplate.value}`;
   navigator.clipboard.writeText(textToCopy)
     .then(() => {
-      error.value = 'メールテンプレートをコピーしました！'
+      error.value = 'メールテンプレートをコピーしました！';
       setTimeout(() => {
-        error.value = ''
-      }, 2000)
+        error.value = '';
+      }, 2000);
     })
     .catch(err => {
-      console.error('Failed to copy: ', err)
-      error.value = 'コピーに失敗しました。'
+      console.error('Failed to copy: ', err);
+      error.value = 'コピーに失敗しました。';
       setTimeout(() => {
-        error.value = ''
-      }, 2000)
-    })
+        error.value = '';
+      }, 2000);
+    });
 }
 
 function continueApplication() {
-  showSuccessMessage.value = false
+  showSuccessMessage.value = false;
 }
 
-fetchLoggedInUserName()
-fetchCCRUsers()
+fetchLoggedInUserName();
+fetchCCRUsers();
 </script>
 
 <style scoped>
