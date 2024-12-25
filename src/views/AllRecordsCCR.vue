@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div class="header">
-      <button @click="goBackToDashboard" class="back-button">ダッシュボードへ戻る</button>
+      <button @click="goBackToDashboard" class="back-button">ダッシュボードに戻る</button>
       <h1 class="main-title">全履歴</h1>
     </div>
     <!-- フィルター群 -->
@@ -14,6 +14,7 @@
           <option value="貸出中">貸出中</option>
           <option value="返却済">返却済</option>
           <option value="採番要">採番要</option>
+          <option value="TX保留中">TX保留中</option>
         </select>
       </div>
       <div class="filter-group">
@@ -28,8 +29,10 @@
         <label>素材タイプ:</label>
         <select v-model="materialTypeFilter">
           <option value="">すべて</option>
-          <option value="メタリック">メタリック</option>
           <option value="ソリッド">ソリッド</option>
+          <option value="メタリック">メタリック</option>
+          <option value="パール">パール</option>
+          <option value="クリア">クリア</option>
         </select>
       </div>
       <div class="filter-group">
@@ -130,33 +133,37 @@
               <textarea v-model="editData['color_code_input']" @input="toUpperCase('color_code_input')" placeholder="複数カラーコードをカンマ(,)で区切って入力"></textarea>
             </div>
 
-            <div class="form-group">
-              <label>素材タイプ：</label>
-              <select v-model="editData['material_type']">
-                <option value="ソリッド">ソリッド</option>
-                <option value="メタリック">メタリック</option>
-                <option value="ソリッド & メタリック">ソリッド & メタリック</option>
-              </select>
+            <!-- 素材タイプ と 色板タイプ -->
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>素材タイプ：</label>
+                <select v-model="editData['material_type']">
+                  <option value="ソリッド">ソリッド</option>
+                  <option value="メタリック">メタリック</option>
+                  <option value="パール">パール</option>
+                  <option value="クリア">クリア</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>色板タイプ:</label>
+                <select v-model="editData['plate_type_input']">
+                  <option value="基準板">基準板</option>
+                  <option value="ロット板">ロット板</option>
+                  <option value="基準板 & ロット板">基準板 & ロット板</option>
+                </select>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label>色板タイプ:</label>
-              <select v-model="editData['plate_type_input']">
-                <option value="基準板">基準板</option>
-                <option value="ロット板">ロット板</option>
-                <option value="基準板 & ロット板">基準板 & ロット板</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>設定色:</label>
-              <textarea v-model="editData['chosen_color_input']" @input="toUpperCase('chosen_color_input')" placeholder="複数設定色をカンマ(,)で区切って入力"></textarea>
-            </div>
-
-            <!-- 親コード入力欄 -->
-            <div v-if="editData['new_color_picker']" class="form-group">
-              <label>親コード:</label>
-              <input v-model="editData['parent_color']" type="text" @input="toUpperCase('parent_color')" placeholder="親コードを入力">
+            <!-- 設定色 と 親コード -->
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>設定色:</label>
+                <textarea v-model="editData['chosen_color_input']" @input="toUpperCase('chosen_color_input')" placeholder="複数設定色をカンマ(,)で区切って入力"></textarea>
+              </div>
+              <div class="form-group" v-if="editData['new_color_picker']">
+                <label>親コード:</label>
+                <input v-model="editData['parent_color']" type="text" @input="toUpperCase('parent_color')" placeholder="親コードを入力">
+              </div>
             </div>
 
             <!-- 採番ステータス選択欄 -->
@@ -168,14 +175,16 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label>依頼組織:</label>
-              <input v-model="editData['Service Centre Name']" type="text">
-            </div>
-
-            <div class="form-group">
-              <label>依頼者:</label>
-              <input v-model="editData['Customer Name']" type="text">
+            <!-- 依頼組織 と 依頼者 -->
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>依頼組織:</label>
+                <input v-model="editData['Service Centre Name']" type="text">
+              </div>
+              <div class="form-group">
+                <label>依頼者:</label>
+                <input v-model="editData['Customer Name']" type="text">
+              </div>
             </div>
 
             <div class="form-group">
@@ -183,12 +192,27 @@
               <input v-model="returnDateInput" type="date">
             </div>
 
+            <!-- 状況 と 状況2 -->
+            <div class="form-group-row">
+              <div class="form-group">
+                <label>状況:</label>
+                <select v-model="editData['Status']">
+                  <option :value="true">返却済</option>
+                  <option :value="false">貸出中</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>状況2:</label>
+                <select v-model="onHoldStatus">
+                  <option value="保留中">保留中</option>
+                  <option value="保留解除">保留解除</option>
+                </select>
+              </div>
+            </div>
+
             <div class="form-group">
-              <label>状況:</label>
-              <select v-model="editData['Status']">
-                <option :value="true">返却済</option>
-                <option :value="false">貸出中</option>
-              </select>
+              <label>ノート:</label>
+              <textarea v-model="editData['note']" placeholder="ノートを入力"></textarea>
             </div>
 
             <div class="button-group">
@@ -232,6 +256,7 @@ let editDocId = null;
 const returnDateInput = ref('');
 // 採番ステータス
 const numberingStatus = ref("採番中"); // デフォルト値を設定
+const onHoldStatus = ref("保留解除");
 
 const role = sessionStorage.getItem('role');
 const ccrName = sessionStorage.getItem('name'); // CCRログインユーザー名を取得
@@ -278,6 +303,7 @@ async function fetchAllHistory() {
 }
 
 function getStatusText(d) {
+  if (d["on_hold"]) return "TX保留中";
   if (d["new_color_picker"]) return "採番要";
   if (!d["Approved Date_CCR"]) return "CCR承認要";
   if (!d["Actual Return Date"]) return "貸出中";
@@ -290,6 +316,7 @@ function getStatusCellStyle(d) {
   if (status === "貸出中") return { 'background-color': '#d93054', 'color': '#fff' };
   if (status === "CCR承認要") return { 'background-color': '#46c75d', 'color': '#fff' };
   if (status === "採番要") return { 'background-color': '#4596e8', 'color': '#fff' };
+  if (status === "TX保留中") return { 'background-color': '#fdba74', 'color': '#000' };
   return {};
 }
 
@@ -366,7 +393,8 @@ function editRecord(id) {
       plate_type_input: plate_type_str,
       material_type: material_type_str,
       parent_color: record.data["parent_color"] || '', // 親コードの初期値を設定
-      new_color_picker: record.data["new_color_picker"] || false
+      new_color_picker: record.data["new_color_picker"] || false,
+      note: record.data["note"] || '' // noteの初期値を設定
     };
     editDocId = record.id;
     if (editData.value["Return Date"]) {
@@ -378,6 +406,8 @@ function editRecord(id) {
 
     // 採番ステータスの初期値を設定
     numberingStatus.value = editData.value["new_color_picker"] ? "採番中" : "";
+    // on_hold の状態に基づいて onHoldStatus を初期化
+    onHoldStatus.value = editData.value["on_hold"] ? "保留中" : "保留解除";
   }
 }
 
@@ -410,6 +440,9 @@ async function updateRecord() {
       newColorPickerUpdate = false;
     }
 
+    // onHoldStatus の値に基づいて on_hold の値を更新
+    const updatedOnHoldStatus = onHoldStatus.value === "保留中";
+
     const updates = {
       "color_code": updatedColorCodes,
       "chosen_color": updatedChosenColors.length > 0 ? updatedChosenColors : null,
@@ -421,7 +454,8 @@ async function updateRecord() {
       "note": editData.value["note"] || null,
       "Return Date": returnDateUpdate,
       "parent_color": editData.value["parent_color"] || null,
-      "new_color_picker": newColorPickerUpdate
+      "new_color_picker": newColorPickerUpdate,
+      "on_hold": updatedOnHoldStatus
     };
 
     if (editData.value["Status"] === true) {
@@ -467,6 +501,7 @@ function cancelEdit() {
   editDocId = null;
   returnDateInput.value = '';
   numberingStatus.value = "採番中"; // 採番ステータスをリセット
+  onHoldStatus.value = "保留解除";
 }
 
 function downloadCSV() {
@@ -720,23 +755,26 @@ function toUpperCase(field) {
   height: 100%;
   background-color: rgba(0,0,0,0.4);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: flex-start; /* 変更: モーダルを上部に配置 */
   z-index: 9999;
+  padding-top: 20px; /* 追加: 上部に余白を追加 */
 }
 
 .modal-content {
   background-color: #f8f9fa;
-  padding: 10px;
   border-radius: 8px;
-  width: 400px;
-  max-width: 90%;
+  width: 700px; /* 変更: 幅を広く */
+  max-width: 95%; /* 変更: 最大幅を調整 */
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   position: relative;
   background-image: 
     linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px),
     linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px);
   background-size: 20px 20px;
+  max-height: 80vh; /* 追加: 最大高さを設定 */
+  overflow-y: auto; /* 追加: 縦スクロールを有効化 */
+  padding: 10px; /* スペース確保のため追加 */
 }
 
 .modal-header {
@@ -762,6 +800,16 @@ function toUpperCase(field) {
   display: flex;
   flex-direction: column;
   font-size: 14px;
+}
+
+/* 追加: 横並び用のスタイル */
+.form-group-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-group-row .form-group {
+  flex: 1;
 }
 
 .form-group label {
@@ -801,7 +849,7 @@ function toUpperCase(field) {
 }
 
 .cancel-button {
-  background-color: #df8a0b;
+  background-color: rgba(19, 19, 18, 0.667);
   color: #fff;
   border: none;
   padding: 2% 4%;
@@ -812,7 +860,7 @@ function toUpperCase(field) {
 }
 
 .cancel-button:hover {
-  background-color: #bb7102;
+  background-color: #858585;
 }
 
 .delete-button {
