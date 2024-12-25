@@ -1,3 +1,4 @@
+<!--ApprovalLoan.vue-->
 <template>
   <div class="approval-loan-container">
     <div class="header">

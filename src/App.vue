@@ -1,3 +1,4 @@
+<!--App.vue-->
 <template>
   <div>
     <!-- Headerコンポーネントを使用 -->

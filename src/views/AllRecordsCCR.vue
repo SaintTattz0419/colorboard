@@ -1,3 +1,4 @@
+<!--AllRecordsCCR.vue-->
 <template>
   <div class="container">
     <div class="header">

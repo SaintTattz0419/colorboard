@@ -1,9 +1,8 @@
+<!--Header.vue-->
 <template>
   <header class="app-header">
     <div class="logo-container" @click="goToDashboard">
       <div class="hexagon-container">
-        <div class="hexagon"></div>
-        <div class="hexagon"></div>
       </div>
       <h1 class="header-title">Color Board Management</h1>
     </div>
@@ -93,21 +92,5 @@ function goToDashboard() {
 .logout-button:hover {
   background-color: #ff2424;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); /* Enhanced shadow on hover */
-}
-
-/* Hexagon styling */
-.hexagon-container {
-  display: flex;
-  margin-right: 20px;
-}
-
-.hexagon {
-  width: 20px;
-  height: 12px;
-  background-color: #d40000;
-  position: relative;
-  margin-right: 5px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
 }
 </style>

@@ -1,3 +1,4 @@
+<!--DealineCCR.vue-->
 <template>
   <div class="deadline-card">
     <h2>返却期限が近いレコード</h2>

@@ -1,3 +1,4 @@
+<!--AllRecordsCAOtD.vue-->
 <template>
   <div class="history-container">
     <div class="header">
